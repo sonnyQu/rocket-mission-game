@@ -620,7 +620,7 @@
           <h2 id="setupTitle" class="stage-title">Crew Manifest</h2>
           <div class="role">Enter your group, rocket, and available crew members.</div>
         </div>
-        <button id="setupSound" class="sound secondary" type="button">Sound Off</button>
+        <button id="setupSound" class="sound secondary" type="button">Sound On</button>
       </div>
       <div class="panel-body">
         <p id="setupPrompt" class="prompt">Enter your group, rocket, and 1-5 student names.</p>
@@ -662,7 +662,7 @@
           <h2 id="stageTitle" class="stage-title"></h2>
           <div id="roleLabel" class="role"></div>
         </div>
-        <button id="soundToggle" class="sound secondary" type="button">Sound Off</button>
+        <button id="soundToggle" class="sound secondary" type="button">Sound On</button>
       </div>
       <div class="panel-body">
         <p id="readyText" class="small-label"></p>
@@ -2293,7 +2293,7 @@
     let currentStageQuestion = 0;
     let segment = { start: 0, end: 10, loop: true, finalMode: false };
     let stagePassed = false;
-    let isMuted = true;
+    let isMuted = false;
     let typingToken = 0;
     let finalTimers = [];
 
@@ -2736,6 +2736,8 @@
     });
 
     document.getElementById("startButton").addEventListener("click", () => {
+      isMuted = false;
+      updateSoundButtons();
       startGate.classList.remove("show");
       startSetup();
     });
