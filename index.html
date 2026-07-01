@@ -2735,11 +2735,22 @@
       els.statusLine.textContent = "Video missing: expected rocket_launch.mp4";
     });
 
-    document.getElementById("startButton").addEventListener("click", () => {
+    function startSystemFromGate() {
       isMuted = false;
       updateSoundButtons();
       startGate.classList.remove("show");
       startSetup();
+    }
+
+    document.getElementById("startButton").addEventListener("click", () => {
+      startSystemFromGate();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && startGate.classList.contains("show")) {
+        event.preventDefault();
+        startSystemFromGate();
+      }
     });
 
     document.getElementById("beginMission").addEventListener("click", beginMission);
