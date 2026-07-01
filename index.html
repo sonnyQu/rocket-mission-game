@@ -1,0 +1,2752 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mission Control: Launch Readiness Challenge</title>
+  <style>
+    :root {
+      --white: #f7f8fa;
+      --muted: rgba(247, 248, 250, .72);
+      --soft: rgba(247, 248, 250, .42);
+      --line: rgba(255, 255, 255, .55);
+      --panel: rgba(0, 0, 0, .46);
+      --panel-strong: rgba(0, 0, 0, .68);
+      --cyan: #8be7ff;
+      --green: #b8ffcc;
+      --amber: #ffd166;
+      --danger: #ff7b7b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      color: var(--white);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    #bgVideo {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      background: #000;
+      filter: contrast(1.06) saturate(.92) brightness(.78);
+      transition: filter 1.2s ease;
+    }
+
+    body.final-launch #bgVideo {
+      filter: contrast(1.12) saturate(1.05) brightness(1);
+    }
+
+    .shade {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, .88) 0%, rgba(0, 0, 0, .47) 38%, rgba(0, 0, 0, .22) 65%, rgba(0, 0, 0, .62) 100%),
+        linear-gradient(0deg, rgba(0, 0, 0, .82) 0%, transparent 36%, rgba(0, 0, 0, .45) 100%);
+      transition: opacity 1.2s ease;
+    }
+
+    body.final-launch .shade {
+      opacity: .42;
+    }
+
+    .scan {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: .14;
+      background:
+        repeating-linear-gradient(to bottom, rgba(255, 255, 255, .18) 0, rgba(255, 255, 255, .18) 1px, transparent 1px, transparent 7px);
+      animation: scan 8s linear infinite;
+    }
+
+    @keyframes scan {
+      from { transform: translateY(-24px); }
+      to { transform: translateY(24px); }
+    }
+
+    .app {
+      position: relative;
+      z-index: 3;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) minmax(420px, 560px);
+      grid-template-rows: auto 1fr auto;
+      gap: 24px;
+      padding: 30px 42px 32px;
+    }
+
+    .top-left {
+      grid-column: 1 / 2;
+      align-self: start;
+    }
+
+    .kicker,
+    .small-label {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.25;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 7px 0 12px;
+      max-width: 690px;
+      font-size: clamp(34px, 4.8vw, 72px);
+      line-height: .91;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      width: min(360px, 58vw);
+      height: 1px;
+      margin: 17px 0 16px;
+      background: var(--line);
+    }
+
+    .mission-meta {
+      display: grid;
+      gap: 7px;
+      max-width: 560px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 13px;
+    }
+
+    .mission-meta strong {
+      color: var(--white);
+      font-weight: 700;
+    }
+
+    .question-panel,
+    .setup-panel {
+      grid-column: 2 / 3;
+      grid-row: 1 / 3;
+      align-self: center;
+      width: 100%;
+      padding: 26px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, .42);
+      backdrop-filter: blur(9px);
+      box-shadow: 0 20px 70px rgba(0, 0, 0, .45);
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .question-panel.good,
+    .setup-panel.good {
+      border-color: rgba(184, 255, 204, .84);
+      box-shadow: 0 0 0 1px rgba(184, 255, 204, .12), 0 20px 70px rgba(0, 0, 0, .45);
+    }
+
+    .question-panel.warn,
+    .setup-panel.warn {
+      border-color: rgba(255, 209, 102, .92);
+      box-shadow: 0 0 0 1px rgba(255, 209, 102, .14), 0 20px 70px rgba(0, 0, 0, .45);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, .28);
+    }
+
+    .stage-title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .role {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .sound {
+      flex: 0 0 auto;
+      min-width: 120px;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 16px;
+      padding-top: 19px;
+    }
+
+    .question {
+      margin: 0;
+      font-size: clamp(23px, 2vw, 31px);
+      line-height: 1.16;
+      font-weight: 700;
+    }
+
+    .prompt,
+    .working,
+    .feedback {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.45;
+    }
+
+    .working {
+      padding: 14px 15px;
+      color: var(--white);
+      background: rgba(0, 0, 0, .34);
+      border-left: 2px solid rgba(255, 255, 255, .64);
+      letter-spacing: .02em;
+    }
+
+    .feedback {
+      min-height: 52px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, .22);
+      background: rgba(0, 0, 0, .26);
+      text-transform: none;
+    }
+
+    .feedback.warn {
+      color: var(--amber);
+      border-color: rgba(255, 209, 102, .62);
+    }
+
+    .feedback.good {
+      color: var(--white);
+      border-color: rgba(184, 255, 204, .64);
+    }
+
+    .answer-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    input {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      color: var(--white);
+      background: rgba(0, 0, 0, .46);
+      border: 1px solid rgba(255, 255, 255, .56);
+      border-radius: 0;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px rgba(139, 231, 255, .35);
+    }
+
+    .actions,
+    .setup-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      min-height: 44px;
+      padding: 0 17px;
+      cursor: pointer;
+      color: var(--white);
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, .78);
+      border-radius: 0;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background .18s, color .18s, border-color .18s, transform .18s;
+    }
+
+    button:hover,
+    button:focus-visible {
+      color: #000;
+      background: var(--white);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    button.secondary {
+      border-color: rgba(255, 255, 255, .42);
+      color: var(--muted);
+    }
+
+    button.secondary:hover,
+    button.secondary:focus-visible {
+      color: #000;
+      border-color: var(--white);
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .setup-grid label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .setup-grid label.wide {
+      grid-column: span 2;
+    }
+
+    .progress {
+      grid-column: 1 / 3;
+      grid-row: 3 / 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, .28);
+    }
+
+    .stage-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: rgba(255, 255, 255, .38);
+      font-size: 12px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .stage-strip span {
+      position: relative;
+      padding-right: 14px;
+    }
+
+    .stage-strip span::after {
+      content: "|";
+      position: absolute;
+      right: 0;
+      color: rgba(255, 255, 255, .25);
+    }
+
+    .stage-strip span:last-child::after { content: ""; }
+    .stage-strip .active { color: var(--cyan); }
+    .stage-strip .done { color: var(--white); }
+
+    .status {
+      min-width: 240px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .go-overlay,
+    .final-screen,
+    .start-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 6;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+
+    .go-overlay.show,
+    .final-screen.show,
+    .start-gate.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .go-text {
+      padding: 28px 42px;
+      border-top: 1px solid rgba(255, 255, 255, .72);
+      border-bottom: 1px solid rgba(255, 255, 255, .72);
+      color: #fff !important;
+      background: rgba(0, 0, 0, .38);
+      font-size: clamp(44px, 8vw, 112px);
+      line-height: .9;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .final-screen {
+      background: rgba(0, 0, 0, 0);
+      transition: background 4s ease, opacity .4s ease;
+    }
+
+    .final-screen.black {
+      background: rgba(0, 0, 0, .94);
+    }
+
+    .final-screen.credits {
+      pointer-events: none;
+    }
+
+    .final-screen.credits .final-card {
+      background: rgba(0, 0, 0, .22);
+      transition: opacity .75s ease, transform .75s ease;
+    }
+
+    .final-screen.fade-card .final-card {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .final-screen.complete {
+      pointer-events: auto;
+    }
+
+    .final-card,
+    .start-card {
+      width: min(760px, calc(100vw - 40px));
+      padding: 34px;
+      text-align: center;
+      background: rgba(0, 0, 0, .62);
+      border-top: 1px solid rgba(255, 255, 255, .72);
+      border-bottom: 1px solid rgba(255, 255, 255, .72);
+    }
+
+    .final-card h2,
+    .start-card h2 {
+      margin: 0 0 12px;
+      font-size: clamp(36px, 6vw, 76px);
+      line-height: .9;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .final-card p,
+    .start-card p {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.5;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .go-overlay.show .go-text {
+      color: #fff !important;
+    }
+
+    .final-screen.credits #launchAgain {
+      display: none;
+    }
+
+    .final-screen.complete #launchAgain {
+      display: inline-block;
+    }
+
+    .crew-list {
+      display: grid;
+      gap: 8px;
+      margin: 20px auto 24px;
+      color: var(--white);
+      font-size: clamp(16px, 2vw, 24px);
+      line-height: 1.25;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: pre-line;
+    }
+
+    .final-summary {
+      position: fixed;
+      left: 42px;
+      top: 50%;
+      z-index: 7;
+      width: min(520px, calc(100vw - 84px));
+      max-height: calc(100vh - 110px);
+      padding: 24px 26px;
+      overflow: hidden;
+      color: var(--white);
+      background: rgba(0, 0, 0, .38);
+      border-left: 2px solid rgba(255, 255, 255, .72);
+      transform: translateY(-48%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .7s ease, transform .7s ease;
+      white-space: pre-line;
+      text-align: left;
+    }
+
+    .final-summary.show {
+      opacity: 1;
+      transform: translateY(-50%);
+    }
+
+    .final-summary h3 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .final-summary div {
+      color: rgba(247, 248, 250, .84);
+      font-size: clamp(13px, 1.35vw, 16px);
+      line-height: 1.45;
+      letter-spacing: .02em;
+    }
+
+    .final-music-toggle {
+      position: fixed;
+      right: 42px;
+      top: 34px;
+      z-index: 8;
+      min-width: 150px;
+      background: rgba(0, 0, 0, .42);
+      backdrop-filter: blur(8px);
+    }
+
+    .typing::after {
+      content: "|";
+      display: inline-block;
+      margin-left: 3px;
+      color: var(--cyan);
+      animation: blink .7s steps(1) infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .glitch {
+      animation: stageFlicker .46s steps(2) 1;
+    }
+
+    @keyframes stageFlicker {
+      0%, 100% { opacity: 1; transform: translateY(0); }
+      35% { opacity: .72; transform: translateY(1px); }
+      58% { opacity: .92; transform: translateY(-1px); }
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        padding: 22px;
+        overflow: auto;
+      }
+
+      .question-panel,
+      .setup-panel {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: end;
+        padding: 20px;
+      }
+
+      .progress {
+        grid-column: 1;
+      }
+
+      .answer-row,
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .setup-grid label.wide {
+        grid-column: auto;
+      }
+
+      h1 {
+        font-size: clamp(32px, 9vw, 58px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <video id="bgVideo" src="rocket_launch.mp4" preload="auto" playsinline></video>
+  <div class="shade" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <main class="app">
+    <section class="top-left" aria-label="Mission status">
+      <p class="kicker">Year 9 Engineering / W2 L3</p>
+      <h1 id="heroTitle">Mission Control</h1>
+      <div class="divider"></div>
+      <div class="mission-meta">
+        <div>Challenge: <strong>Launch Readiness</strong></div>
+        <div>Stage: <strong id="metaStage">Crew Setup</strong></div>
+        <div>Group: <strong id="metaGroup">Awaiting crew file</strong></div>
+        <div>Rocket: <strong id="metaRocket">Unassigned</strong></div>
+      </div>
+    </section>
+
+    <section id="setupPanel" class="setup-panel" aria-label="Crew setup">
+      <div class="panel-head">
+        <div>
+          <p class="small-label">Camera 1 / 0-10 seconds</p>
+          <h2 id="setupTitle" class="stage-title">Crew Manifest</h2>
+          <div class="role">Complete every field to arm the launch sequence.</div>
+        </div>
+        <button id="setupSound" class="sound secondary" type="button">Sound Off</button>
+      </div>
+      <div class="panel-body">
+        <p id="setupPrompt" class="prompt">Enter your group, rocket, and five mission roles.</p>
+        <div class="setup-grid">
+          <label class="wide">Group name
+            <input id="groupName" autocomplete="off" />
+          </label>
+          <label class="wide">Rocket name
+            <input id="rocketName" autocomplete="off" />
+          </label>
+          <label>Student 1 - Unit Specialist
+            <input id="student1" autocomplete="off" />
+          </label>
+          <label>Student 2 - Vector Engineer
+            <input id="student2" autocomplete="off" />
+          </label>
+          <label>Student 3 - Physics Law Officer
+            <input id="student3" autocomplete="off" />
+          </label>
+          <label>Student 4 - Gravity Engineer
+            <input id="student4" autocomplete="off" />
+          </label>
+          <label class="wide">Student 5 - Launch Analyst
+            <input id="student5" autocomplete="off" />
+          </label>
+        </div>
+        <p id="setupFeedback" class="feedback">STATUS: Crew file incomplete.</p>
+        <div class="setup-actions">
+          <button id="beginMission" type="button">Begin Mission</button>
+          <button id="replaySetup" class="secondary" type="button">Replay Segment</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="questionPanel" class="question-panel hidden" aria-label="Stage question">
+      <div class="panel-head">
+        <div>
+          <p id="cameraLabel" class="small-label">Camera 2</p>
+          <h2 id="stageTitle" class="stage-title"></h2>
+          <div id="roleLabel" class="role"></div>
+        </div>
+        <button id="soundToggle" class="sound secondary" type="button">Sound Off</button>
+      </div>
+      <div class="panel-body">
+        <p id="readyText" class="small-label"></p>
+        <p id="questionText" class="question"></p>
+        <p id="promptText" class="prompt"></p>
+        <p id="workingText" class="working"></p>
+        <div class="answer-row">
+          <input id="answerInput" autocomplete="off" placeholder="ENTER RESPONSE" />
+          <button id="submitAnswer" type="button">Submit Answer</button>
+        </div>
+        <p id="feedbackText" class="feedback">Awaiting response.</p>
+        <div class="actions">
+          <button id="hintButton" class="secondary" type="button">Hint</button>
+          <button id="replayButton" class="secondary" type="button">Replay Segment</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="progress" aria-label="Launch progress">
+      <div id="stageStrip" class="stage-strip"></div>
+      <div id="statusLine" class="status">Launch system idle</div>
+    </footer>
+  </main>
+
+  <div id="startGate" class="start-gate show">
+    <div class="start-card">
+      <h2>Mission Control</h2>
+      <p>Tap to load video, enable classroom playback, and begin crew setup.</p>
+      <button id="startButton" type="button">Start System</button>
+    </div>
+  </div>
+
+  <div id="goOverlay" class="go-overlay" aria-live="polite">
+    <div id="goText" class="go-text" style="color:#fff">GO</div>
+  </div>
+
+  <div id="finalScreen" class="final-screen" aria-live="polite">
+    <div class="final-card">
+      <h2 id="finalTitle">Mission Complete</h2>
+      <p id="finalMessage">Rocket launch successful. Launch another rocket?</p>
+      <div id="finalCrew" class="crew-list"></div>
+      <button id="launchAgain" type="button">Launch Again</button>
+    </div>
+  </div>
+
+  <aside id="finalSummary" class="final-summary" aria-label="Mission question summary">
+    <h3>Question Debrief</h3>
+    <div id="finalSummaryText"></div>
+  </aside>
+
+  <button id="finalMusicToggle" class="final-music-toggle hidden" type="button">Music On</button>
+
+  <script>
+    const video = document.getElementById("bgVideo");
+    const setupPanel = document.getElementById("setupPanel");
+    const questionPanel = document.getElementById("questionPanel");
+    const startGate = document.getElementById("startGate");
+    const finalScreen = document.getElementById("finalScreen");
+    const goOverlay = document.getElementById("goOverlay");
+    const goText = document.getElementById("goText");
+
+    const els = {
+      heroTitle: document.getElementById("heroTitle"),
+      metaStage: document.getElementById("metaStage"),
+      metaGroup: document.getElementById("metaGroup"),
+      metaRocket: document.getElementById("metaRocket"),
+      setupTitle: document.getElementById("setupTitle"),
+      setupPrompt: document.getElementById("setupPrompt"),
+      setupFeedback: document.getElementById("setupFeedback"),
+      cameraLabel: document.getElementById("cameraLabel"),
+      stageTitle: document.getElementById("stageTitle"),
+      roleLabel: document.getElementById("roleLabel"),
+      readyText: document.getElementById("readyText"),
+      questionText: document.getElementById("questionText"),
+      promptText: document.getElementById("promptText"),
+      workingText: document.getElementById("workingText"),
+      answerInput: document.getElementById("answerInput"),
+      feedbackText: document.getElementById("feedbackText"),
+      statusLine: document.getElementById("statusLine"),
+      stageStrip: document.getElementById("stageStrip"),
+      soundToggle: document.getElementById("soundToggle"),
+      setupSound: document.getElementById("setupSound"),
+      finalCrew: document.getElementById("finalCrew"),
+      finalSummary: document.getElementById("finalSummary"),
+      finalSummaryText: document.getElementById("finalSummaryText"),
+      finalMusicToggle: document.getElementById("finalMusicToggle")
+    };
+
+    const setupInputs = ["groupName", "rocketName", "student1", "student2", "student3", "student4", "student5"]
+      .map((id) => document.getElementById(id));
+
+    const crewRoles = [
+      "Unit Specialist",
+      "Vector Engineer",
+      "Physics Law Officer",
+      "Gravity Engineer",
+      "Launch Analyst"
+    ];
+
+    const questionBank = {
+      "stage1_systems_check": [
+            [
+                  "Which unit is used for force in engineering calculations?",
+                  "Think about thrust, drag, weight and resultant force.",
+                  "Force is measured in ______.",
+                  [
+                        "N",
+                        "newton",
+                        "newtons"
+                  ],
+                  "Force is measured in newtons. The symbol is N.",
+                  "Stage 1 complete. Force unit verified. GO."
+            ],
+            [
+                  "Which unit is used for mass before using W = m x g or F = m x a?",
+                  "This is the standard science unit for mass.",
+                  "Mass is measured in ______.",
+                  [
+                        "kg",
+                        "kilogram",
+                        "kilograms"
+                  ],
+                  "Mass is measured in kilograms. The symbol is kg.",
+                  "Stage 1 complete. Mass system verified. GO."
+            ],
+            [
+                  "Which unit is used for time in SI units?",
+                  "Think about the basic science unit for time.",
+                  "Time is measured in ______.",
+                  [
+                        "s",
+                        "second",
+                        "seconds"
+                  ],
+                  "Time is measured in seconds. The symbol is s.",
+                  "Stage 1 complete. Time system verified. GO."
+            ],
+            [
+                  "Which unit is used for distance or length?",
+                  "Think about the standard SI unit for measuring length.",
+                  "Distance is measured in ______.",
+                  [
+                        "m",
+                        "metre",
+                        "metres",
+                        "meter",
+                        "meters"
+                  ],
+                  "Distance is measured in metres. The symbol is m.",
+                  "Stage 1 complete. Distance system verified. GO."
+            ],
+            [
+                  "Weight / Fg is measured in which unit?",
+                  "Weight is a force, not a mass.",
+                  "Weight / Fg is measured in ______.",
+                  [
+                        "N",
+                        "newton",
+                        "newtons"
+                  ],
+                  "Weight is a force, so it is measured in newtons.",
+                  "Stage 1 complete. Weight unit confirmed. GO."
+            ],
+            [
+                  "Drag acts in which direction compared with motion?",
+                  "Think about a rocket moving upward through air.",
+                  "Drag acts ______ motion.",
+                  [
+                        "opposite",
+                        "opposite to",
+                        "against",
+                        "opposite the motion",
+                        "against motion"
+                  ],
+                  "Drag acts against the direction of motion.",
+                  "Stage 1 complete. Drag direction confirmed. GO."
+            ],
+            [
+                  "Cd is used to compare how much drag a design creates. What does Cd mean?",
+                  "This was used to compare fins and body tube designs.",
+                  "Cd means ______ coefficient.",
+                  [
+                        "drag",
+                        "drag coefficient"
+                  ],
+                  "Cd means drag coefficient.",
+                  "Stage 1 complete. Drag data system online. GO."
+            ],
+            [
+                  "Is drag a contact or non-contact force?",
+                  "Think about the rocket pushing through air particles.",
+                  "Drag is a ______ force.",
+                  [
+                        "contact",
+                        "contact force"
+                  ],
+                  "Drag happens when an object interacts with air particles.",
+                  "Stage 1 complete. Force classification confirmed. GO."
+            ],
+            [
+                  "Is gravity a contact or non-contact force?",
+                  "Gravity can act without objects touching.",
+                  "Gravity is a ______ force.",
+                  [
+                        "non-contact",
+                        "non contact",
+                        "noncontact",
+                        "non-contact force"
+                  ],
+                  "Gravity acts at a distance.",
+                  "Stage 1 complete. Gravity classification confirmed. GO."
+            ],
+            [
+                  "Is thrust from a rocket engine a contact or non-contact force?",
+                  "Think about gases pushing out of the engine.",
+                  "Thrust is a ______ force.",
+                  [
+                        "contact",
+                        "contact force"
+                  ],
+                  "Thrust comes from a physical interaction with expelled gases.",
+                  "Stage 1 complete. Thrust classification confirmed. GO."
+            ],
+            [
+                  "Name the four main forces acting on a rocket during launch.",
+                  "Think about the forces around a rocket moving upward through air.",
+                  "The four forces are ______, ______, ______ and ______.",
+                  [
+                        "thrust weight drag wind",
+                        "thrust gravity drag wind",
+                        "thrust weight drag wind force",
+                        "thrust gravitational force drag wind force"
+                  ],
+                  "One force pushes up, one pulls down, one resists motion, and one may act sideways.",
+                  "Force system confirmed. GO."
+            ],
+            [
+                  "Which force pushes the rocket upward during launch?",
+                  "This force is produced by the rocket engine.",
+                  "The upward force is ______.",
+                  [
+                        "thrust"
+                  ],
+                  "The engine produces thrust.",
+                  "Thrust confirmed. GO."
+            ],
+            [
+                  "Which force pulls the rocket downward toward Earth?",
+                  "This force is caused by gravity.",
+                  "The downward pulling force is ______.",
+                  [
+                        "gravity",
+                        "weight",
+                        "weight force",
+                        "Fg",
+                        "gravitational force"
+                  ],
+                  "This can be called weight force or gravitational force.",
+                  "Gravity force confirmed. GO."
+            ],
+            [
+                  "A rocket is moving upward. Which direction does drag act?",
+                  "Drag acts opposite the direction of motion.",
+                  "Drag acts ______.",
+                  [
+                        "downward",
+                        "down",
+                        "downwards"
+                  ],
+                  "The rocket moves upward, so drag acts downward.",
+                  "Drag direction confirmed. GO."
+            ],
+            [
+                  "A rocket is falling downward with a parachute. Which direction does drag act?",
+                  "Drag acts opposite the direction of motion.",
+                  "Drag acts ______.",
+                  [
+                        "upward",
+                        "up",
+                        "upwards"
+                  ],
+                  "The rocket is falling down, so drag acts upward.",
+                  "Recovery drag confirmed. GO."
+            ],
+            [
+                  "A crosswind hits a rocket from the left. What extra force may act on the rocket?",
+                  "Think about sideways air movement.",
+                  "The extra force is a ______ force.",
+                  [
+                        "wind",
+                        "wind force",
+                        "sideways wind force",
+                        "side force"
+                  ],
+                  "Wind can create a sideways force.",
+                  "Wind force confirmed. GO."
+            ],
+            [
+                  "Why do engineers draw arrows on a force diagram?",
+                  "Arrows show information about forces.",
+                  "Arrows show force size and ______.",
+                  [
+                        "direction",
+                        "directions"
+                  ],
+                  "A force arrow must show which way the force acts.",
+                  "Force diagram purpose confirmed. GO."
+            ],
+            [
+                  "If a force arrow is longer, what does that usually show?",
+                  "Think about the size of the force.",
+                  "A longer arrow shows a ______ force.",
+                  [
+                        "larger",
+                        "bigger",
+                        "stronger",
+                        "greater"
+                  ],
+                  "Longer arrows usually represent larger forces.",
+                  "Force arrow scale confirmed. GO."
+            ]
+      ],
+      "stage2_rocket_forces_and_design": [
+            [
+                  "A rocket is moving upward after launch. Which direction does drag act?",
+                  "Drag acts against motion.",
+                  "If the rocket moves upward, drag acts ______.",
+                  [
+                        "downward",
+                        "down",
+                        "downwards"
+                  ],
+                  "The rocket is moving upward, so drag acts in the opposite direction.",
+                  "Stage 2 complete. Drag force direction confirmed. GO."
+            ],
+            [
+                  "A rocket is falling downward with a parachute. Which direction does drag act?",
+                  "Drag acts opposite to the direction of motion.",
+                  "If the rocket is falling downward, drag acts ______.",
+                  [
+                        "upward",
+                        "up",
+                        "upwards"
+                  ],
+                  "The rocket is moving downward, so drag acts upward.",
+                  "Stage 2 complete. Recovery drag confirmed. GO."
+            ],
+            [
+                  "Which force pushes a rocket upward during launch?",
+                  "Think about the engine pushing gases downward.",
+                  "The upward launch force is called ______.",
+                  [
+                        "thrust"
+                  ],
+                  "The engine produces thrust.",
+                  "Stage 2 complete. Thrust confirmed. GO."
+            ],
+            [
+                  "Which force pulls a rocket back toward Earth?",
+                  "This force acts downward near Earth.",
+                  "The downward pulling force is ______.",
+                  [
+                        "gravity",
+                        "weight",
+                        "weight force",
+                        "Fg",
+                        "gravitational force"
+                  ],
+                  "Gravity causes weight force.",
+                  "Stage 2 complete. Gravity force confirmed. GO."
+            ],
+            [
+                  "A design has a lower Cd than another design. What does this usually mean?",
+                  "Use drag coefficient evidence.",
+                  "Lower Cd usually means ______ drag.",
+                  [
+                        "less",
+                        "lower",
+                        "less drag",
+                        "lower drag"
+                  ],
+                  "A lower drag coefficient usually means less drag.",
+                  "Stage 2 complete. Cd evidence confirmed. GO."
+            ],
+            [
+                  "A smooth body tube has Cd = 0.38 and a rough body tube has Cd = 0.74. Which one creates less drag?",
+                  "Choose the design with the lower Cd.",
+                  "The ______ body tube creates less drag.",
+                  [
+                        "smooth",
+                        "smooth body tube"
+                  ],
+                  "0.38 is lower than 0.74.",
+                  "Stage 2 complete. Body tube evidence confirmed. GO."
+            ],
+            [
+                  "A fin design has Cd = 0.52. Another fin design has Cd = 0.31. Which design usually creates less drag?",
+                  "Compare the Cd values.",
+                  "The fin design with Cd = ______ creates less drag.",
+                  [
+                        "0.31",
+                        ".31"
+                  ],
+                  "Lower Cd usually means less drag.",
+                  "Stage 2 complete. Fin evidence confirmed. GO."
+            ],
+            [
+                  "Why should engineers use Cd data when choosing a rocket design?",
+                  "Think about evidence-based design.",
+                  "Engineers use Cd data as ______.",
+                  [
+                        "evidence",
+                        "data",
+                        "design evidence"
+                  ],
+                  "Engineers should justify choices using evidence, not guessing.",
+                  "Stage 2 complete. Engineering evidence confirmed. GO."
+            ],
+            [
+                  "A very small fin has the lowest Cd, but the rocket becomes unstable. Is it always the best design?",
+                  "Think about drag and stability together.",
+                  "The best design must balance drag and ______.",
+                  [
+                        "stability",
+                        "stable flight",
+                        "rocket stability"
+                  ],
+                  "Lowest drag is useful, but the rocket must still fly straight.",
+                  "Stage 2 complete. Design trade-off confirmed. GO."
+            ],
+            [
+                  "A rocket reaches a constant falling speed because weight and drag become balanced. What is this called?",
+                  "This is the maximum constant falling speed in air.",
+                  "This is called ______ velocity.",
+                  [
+                        "terminal",
+                        "terminal velocity"
+                  ],
+                  "It is called terminal velocity.",
+                  "Stage 2 complete. Terminal velocity confirmed. GO."
+            ],
+            [
+                  "Is gravity a contact force or a non-contact force?",
+                  "Gravity can act without objects touching.",
+                  "Gravity is a ______ force.",
+                  [
+                        "non-contact",
+                        "non contact",
+                        "noncontact",
+                        "non-contact force"
+                  ],
+                  "Gravity acts at a distance.",
+                  "Gravity classification confirmed. GO."
+            ],
+            [
+                  "Is drag a contact force or a non-contact force?",
+                  "Drag happens because the object moves through air.",
+                  "Drag is a ______ force.",
+                  [
+                        "contact",
+                        "contact force"
+                  ],
+                  "Drag requires interaction with air particles.",
+                  "Drag classification confirmed. GO."
+            ],
+            [
+                  "Is friction a contact force or a non-contact force?",
+                  "Friction happens when surfaces interact.",
+                  "Friction is a ______ force.",
+                  [
+                        "contact",
+                        "contact force"
+                  ],
+                  "Friction needs contact between surfaces.",
+                  "Friction classification confirmed. GO."
+            ],
+            [
+                  "Is magnetic force a contact force or a non-contact force?",
+                  "Magnets can pull or push without touching.",
+                  "Magnetic force is a ______ force.",
+                  [
+                        "non-contact",
+                        "non contact",
+                        "noncontact",
+                        "non-contact force"
+                  ],
+                  "Magnetic force can act at a distance.",
+                  "Magnetic force classification confirmed. GO."
+            ],
+            [
+                  "Rocket thrust comes from gases being pushed out of the engine. Is thrust contact or non-contact?",
+                  "Think about the physical interaction with gases.",
+                  "Thrust is a ______ force.",
+                  [
+                        "contact",
+                        "contact force"
+                  ],
+                  "Thrust comes from a physical push.",
+                  "Thrust classification confirmed. GO."
+            ],
+            [
+                  "A force acts on a rocket without touching it. Which type of force is it?",
+                  "Think about contact vs non-contact.",
+                  "It is a ______ force.",
+                  [
+                        "non-contact",
+                        "non contact",
+                        "noncontact"
+                  ],
+                  "If there is no touching, it is non-contact.",
+                  "Force type confirmed. GO."
+            ],
+            [
+                  "What does Cd mean in rocket design?",
+                  "Cd is used to compare how much drag a shape creates.",
+                  "Cd means ______ coefficient.",
+                  [
+                        "drag",
+                        "drag coefficient"
+                  ],
+                  "Cd means drag coefficient.",
+                  "Cd meaning confirmed. GO."
+            ],
+            [
+                  "A design has a lower Cd than another design. What does this usually mean?",
+                  "Use drag coefficient evidence.",
+                  "Lower Cd usually means ______ drag.",
+                  [
+                        "less",
+                        "lower",
+                        "less drag",
+                        "lower drag"
+                  ],
+                  "Lower Cd usually means less drag.",
+                  "Cd comparison confirmed. GO."
+            ],
+            [
+                  "A smooth body tube has Cd = 0.36 and a rough body tube has Cd = 0.78. Which one usually creates less drag?",
+                  "Choose the lower Cd value.",
+                  "The ______ body tube creates less drag.",
+                  [
+                        "smooth",
+                        "smooth body tube"
+                  ],
+                  "0.36 is lower than 0.78.",
+                  "Body tube evidence confirmed. GO."
+            ],
+            [
+                  "Fin A has Cd = 0.58. Fin B has Cd = 0.34. Which fin usually creates less drag?",
+                  "Compare the Cd values.",
+                  "Fin ______ creates less drag.",
+                  [
+                        "B",
+                        "fin b"
+                  ],
+                  "0.34 is lower than 0.58.",
+                  "Fin data confirmed. GO."
+            ],
+            [
+                  "Why should engineers use Cd data instead of just guessing a rocket design?",
+                  "Think like an engineer.",
+                  "Cd data gives design ______.",
+                  [
+                        "evidence",
+                        "data",
+                        "proof",
+                        "support",
+                        "design evidence"
+                  ],
+                  "Engineers justify designs using evidence.",
+                  "Evidence-based design confirmed. GO."
+            ],
+            [
+                  "A very small fin has the lowest Cd, but the rocket wobbles during flight. Why might it not be the best design?",
+                  "Think about drag and stability together.",
+                  "The design has low drag but poor ______.",
+                  [
+                        "stability",
+                        "stable flight",
+                        "rocket stability"
+                  ],
+                  "A rocket also needs to fly straight.",
+                  "Design trade-off confirmed. GO."
+            ],
+            [
+                  "A taped body tube has a higher Cd than a smooth painted body tube. Which surface is usually better for reducing drag?",
+                  "Think about smooth airflow.",
+                  "The better surface is the ______ surface.",
+                  [
+                        "smooth",
+                        "smooth painted",
+                        "painted",
+                        "smooth painted body tube"
+                  ],
+                  "Smooth surfaces usually reduce drag.",
+                  "Surface design confirmed. GO."
+            ],
+            [
+                  "A rocket reaches a constant falling speed because drag balances weight. What is this called?",
+                  "This is a maximum constant falling speed through air.",
+                  "This is called ______ velocity.",
+                  [
+                        "terminal",
+                        "terminal velocity"
+                  ],
+                  "It is called terminal velocity.",
+                  "Terminal velocity confirmed. GO."
+            ],
+            [
+                  "At terminal velocity, what can you say about weight and drag?",
+                  "The falling speed becomes constant.",
+                  "Weight and drag are ______.",
+                  [
+                        "balanced",
+                        "equal",
+                        "the same",
+                        "balanced forces"
+                  ],
+                  "Constant speed means the forces are balanced.",
+                  "Terminal velocity force balance confirmed. GO."
+            ]
+      ],
+      "stage3_vector_alignment": [
+            [
+                  "A plane has 9 N forward thrust and 4 N backward drag. What is the resultant vector?",
+                  "Opposite directions subtract. Keep the direction of the larger force.",
+                  "Resultant = 9 - 4 = ____ N\nDirection = ______",
+                  [
+                        "5 N forward",
+                        "5N forward",
+                        "5 forward",
+                        "5 N forwards",
+                        "5N forwards"
+                  ],
+                  "9 is larger than 4, so the resultant direction is forward.",
+                  "Stage 3 complete. Aircraft vector confirmed. GO."
+            ],
+            [
+                  "A plane has 14 N forward thrust and 6 N backward drag. What is the resultant vector?",
+                  "Subtract the backward vector from the forward vector.",
+                  "Resultant = 14 - 6 = ____ N\nDirection = ______",
+                  [
+                        "8 N forward",
+                        "8N forward",
+                        "8 forward",
+                        "8 N forwards"
+                  ],
+                  "The forward vector is larger.",
+                  "Stage 3 complete. Vector alignment confirmed. GO."
+            ],
+            [
+                  "A drone has 7 N right, 3 N left and 5 N right. What is the resultant vector?",
+                  "Add vectors in the same direction first.",
+                  "Right total = 7 + 5 = ____ N\nLeft total = ____ N\nResultant = ____ N\nDirection = ______",
+                  [
+                        "9 N right",
+                        "9N right",
+                        "9 right"
+                  ],
+                  "Right total is 12 N. Then subtract 3 N left.",
+                  "Stage 3 complete. Horizontal vector confirmed. GO."
+            ],
+            [
+                  "A glider has 11 N forward and 8 N backward. What is the resultant vector?",
+                  "Subtract opposite directions.",
+                  "Resultant = 11 - 8 = ____ N\nDirection = ______",
+                  [
+                        "3 N forward",
+                        "3N forward",
+                        "3 forward",
+                        "3 N forwards"
+                  ],
+                  "The forward force is larger by 3 N.",
+                  "Stage 3 complete. Resultant vector confirmed. GO."
+            ],
+            [
+                  "A rocket has 95 N upward thrust and 55 N downward force. What is the resultant vector?",
+                  "Opposite directions subtract. Keep the direction of the larger vector.",
+                  "Resultant = 95 - 55 = ____ N\nDirection = ______",
+                  [
+                        "40 N upward",
+                        "40N upward",
+                        "40 upward",
+                        "40 N up",
+                        "40N up"
+                  ],
+                  "The upward vector is larger.",
+                  "Stage 3 complete. Vertical vector confirmed. GO."
+            ],
+            [
+                  "A rocket has 110 N upward thrust, 45 N downward weight and 25 N downward drag. What is the resultant vector?",
+                  "Add the downward vectors first, then subtract from thrust.",
+                  "Downward total = 45 + 25 = ____ N\nResultant = 110 - ____ = ____ N\nDirection = ______",
+                  [
+                        "40 N upward",
+                        "40N upward",
+                        "40 upward",
+                        "40 N up"
+                  ],
+                  "The downward total is 70 N. Then subtract from 110 N.",
+                  "Stage 3 complete. Rocket vector confirmed. GO."
+            ],
+            [
+                  "A rocket has 130 N upward thrust, 60 N downward weight and 35 N downward drag. What is the resultant vector?",
+                  "Combine downward forces before subtracting.",
+                  "Downward total = 60 + 35 = ____ N\nResultant = 130 - ____ = ____ N\nDirection = ______",
+                  [
+                        "35 N upward",
+                        "35N upward",
+                        "35 upward",
+                        "35 N up"
+                  ],
+                  "60 + 35 = 95. Then 130 - 95 = 35.",
+                  "Stage 3 complete. Launch vector confirmed. GO."
+            ],
+            [
+                  "A test aircraft has 10 N forward, 4 N backward and 2 N backward. What is the resultant vector?",
+                  "Add the backward forces first.",
+                  "Backward total = 4 + 2 = ____ N\nResultant = 10 - ____ = ____ N\nDirection = ______",
+                  [
+                        "4 N forward",
+                        "4N forward",
+                        "4 forward"
+                  ],
+                  "Backward total is 6 N. Then subtract from 10 N.",
+                  "Stage 3 complete. Vector calculation verified. GO."
+            ],
+            [
+                  "What is a vector?",
+                  "Think about two pieces of information.",
+                  "A vector has size and ______.",
+                  [
+                        "direction"
+                  ],
+                  "A vector must have direction.",
+                  "Vector meaning confirmed. GO."
+            ],
+            [
+                  "What is a resultant vector?",
+                  "Think about combining vectors.",
+                  "A resultant vector is the ______ overall vector.",
+                  [
+                        "final",
+                        "total",
+                        "overall",
+                        "resulting"
+                  ],
+                  "It is the final vector after combining other vectors.",
+                  "Resultant meaning confirmed. GO."
+            ],
+            [
+                  "A plane has 9 N forward thrust and 4 N backward drag. What is the resultant vector?",
+                  "Opposite directions subtract.",
+                  "Resultant = 9 - 4 = ____ N\nDirection = ______",
+                  [
+                        "5 N forward",
+                        "5N forward",
+                        "5 forward",
+                        "5 N forwards"
+                  ],
+                  "The forward force is larger by 5 N.",
+                  "Aircraft vector confirmed. GO."
+            ],
+            [
+                  "A drone has 7 N right, 3 N left and 5 N right. What is the resultant vector?",
+                  "Add vectors in the same direction first.",
+                  "Right total = 7 + 5 = ____ N\nLeft total = ____ N\nResultant = ____ N\nDirection = ______",
+                  [
+                        "9 N right",
+                        "9N right",
+                        "9 right"
+                  ],
+                  "Right total is 12 N. Then subtract 3 N left.",
+                  "Horizontal vector confirmed. GO."
+            ],
+            [
+                  "A rocket has 110 N upward thrust, 45 N downward weight and 25 N downward drag. What is the resultant vector?",
+                  "Add downward forces first.",
+                  "Downward total = 45 + 25 = ____ N\nResultant = 110 - ____ = ____ N\nDirection = ______",
+                  [
+                        "40 N upward",
+                        "40N upward",
+                        "40 upward",
+                        "40 N up"
+                  ],
+                  "Downward total is 70 N. Then subtract from 110 N.",
+                  "Rocket vector confirmed. GO."
+            ],
+            [
+                  "A test aircraft has 10 N forward, 4 N backward and 2 N backward. What is the resultant vector?",
+                  "Add the backward forces first.",
+                  "Backward total = 4 + 2 = ____ N\nResultant = 10 - ____ = ____ N\nDirection = ______",
+                  [
+                        "4 N forward",
+                        "4N forward",
+                        "4 forward"
+                  ],
+                  "Backward total is 6 N. Then 10 - 6 = 4 N forward.",
+                  "Vector calculation confirmed. GO."
+            ],
+            [
+                  "A rocket has 130 N upward thrust, 60 N downward weight and 35 N downward drag. What is the resultant vector?",
+                  "Combine downward forces before subtracting.",
+                  "Downward total = 60 + 35 = ____ N\nResultant = 130 - ____ = ____ N\nDirection = ______",
+                  [
+                        "35 N upward",
+                        "35N upward",
+                        "35 upward",
+                        "35 N up"
+                  ],
+                  "The downward total is 95 N.",
+                  "Launch vector confirmed. GO."
+            ]
+      ],
+      "stage4_motion_law_check": [
+            [
+                  "A rocket remains still on the launchpad until thrust creates an unbalanced force. Which law explains this?",
+                  "This law is connected to inertia.",
+                  "This is Newton's ______ Law.",
+                  [
+                        "First",
+                        "First Law",
+                        "Newton's First Law",
+                        "Newtons First Law",
+                        "newton first",
+                        "newtons first"
+                  ],
+                  "It is Newton's law about objects staying at rest or continuing motion.",
+                  "Stage 4 complete. Inertia check passed. GO."
+            ],
+            [
+                  "Which idea explains why passengers feel pushed back when a plane accelerates forward?",
+                  "Their bodies tend to stay at rest.",
+                  "This idea is called ______.",
+                  [
+                        "inertia"
+                  ],
+                  "It means resisting a change in motion.",
+                  "Stage 4 complete. Passenger inertia confirmed. GO."
+            ],
+            [
+                  "Which law says an object keeps moving at the same speed and direction unless an unbalanced force acts?",
+                  "This law is connected to inertia.",
+                  "This is Newton's ______ Law.",
+                  [
+                        "First",
+                        "First Law",
+                        "Newton's First Law",
+                        "Newtons First Law",
+                        "newton first",
+                        "newtons first"
+                  ],
+                  "It is Newton's First Law.",
+                  "Stage 4 complete. Motion law verified. GO."
+            ],
+            [
+                  "A test capsule continues moving forward until drag and other forces slow it down. Which idea explains its tendency to keep moving?",
+                  "This is the tendency to resist changes in motion.",
+                  "The idea is ______.",
+                  [
+                        "inertia"
+                  ],
+                  "The word starts with i.",
+                  "Stage 4 complete. Inertia verified. GO."
+            ],
+            [
+                  "If forces on a rocket are balanced, will its motion change?",
+                  "Think about balanced forces and Newton's First Law.",
+                  "Balanced forces cause ______ change in motion.",
+                  [
+                        "no",
+                        "no change",
+                        "no change in motion"
+                  ],
+                  "Balanced forces do not change the object's motion.",
+                  "Stage 4 complete. Balanced force check passed. GO."
+            ],
+            [
+                  "What must act on a rocket to change its motion?",
+                  "Think about Newton's First Law.",
+                  "A rocket's motion changes when an ______ force acts.",
+                  [
+                        "unbalanced",
+                        "unbalanced force"
+                  ],
+                  "Balanced forces do not change motion.",
+                  "Stage 4 complete. Motion-change check passed. GO."
+            ],
+            [
+                  "A rocket is moving upward at a steady speed. What can you say about the forces?",
+                  "Steady speed means no change in motion.",
+                  "The forces are likely ______.",
+                  [
+                        "balanced",
+                        "balanced forces"
+                  ],
+                  "If motion is not changing, forces are balanced.",
+                  "Stage 4 complete. Balanced motion confirmed. GO."
+            ],
+            [
+                  "A rocket speeds up upward. Are the upward and downward forces balanced or unbalanced?",
+                  "Speeding up means motion is changing.",
+                  "The forces are ______.",
+                  [
+                        "unbalanced",
+                        "unbalanced forces"
+                  ],
+                  "Changing motion requires unbalanced forces.",
+                  "Stage 4 complete. Unbalanced force confirmed. GO."
+            ],
+            [
+                  "A rocket stays still on the launchpad until thrust creates an unbalanced force. Which law explains this?",
+                  "This law is connected to inertia.",
+                  "This is Newton’s ______ Law.",
+                  [
+                        "First",
+                        "First Law",
+                        "Newton's First Law",
+                        "Newton’s First Law",
+                        "Newtons First Law"
+                  ],
+                  "It is Newton’s law about objects staying at rest or continuing motion.",
+                  "Newton’s First Law confirmed. GO."
+            ],
+            [
+                  "Which idea explains why passengers feel pushed back when a plane accelerates forward?",
+                  "Their bodies tend to stay at rest.",
+                  "This idea is called ______.",
+                  [
+                        "inertia"
+                  ],
+                  "It means resisting a change in motion.",
+                  "Inertia confirmed. GO."
+            ],
+            [
+                  "Which law says an object keeps moving at the same speed and direction unless an unbalanced force acts?",
+                  "This law is connected to inertia.",
+                  "This is Newton’s ______ Law.",
+                  [
+                        "First",
+                        "First Law",
+                        "Newton's First Law",
+                        "Newton’s First Law",
+                        "Newtons First Law"
+                  ],
+                  "It is Newton’s First Law.",
+                  "Motion law verified. GO."
+            ],
+            [
+                  "If forces on a rocket are balanced, will its motion change?",
+                  "Think about balanced forces and Newton’s First Law.",
+                  "Balanced forces cause ______ change in motion.",
+                  [
+                        "no",
+                        "no change",
+                        "no change in motion"
+                  ],
+                  "Balanced forces do not change motion.",
+                  "Balanced force check passed. GO."
+            ],
+            [
+                  "What must act on a rocket to change its motion?",
+                  "Think about Newton’s First Law.",
+                  "A rocket’s motion changes when an ______ force acts.",
+                  [
+                        "unbalanced",
+                        "unbalanced force"
+                  ],
+                  "Balanced forces do not change motion.",
+                  "Unbalanced force confirmed. GO."
+            ],
+            [
+                  "A rocket is moving upward at a steady speed. What can you say about the forces?",
+                  "Steady speed means no change in motion.",
+                  "The forces are likely ______.",
+                  [
+                        "balanced",
+                        "balanced forces"
+                  ],
+                  "If motion is not changing, forces are balanced.",
+                  "Balanced motion confirmed. GO."
+            ],
+            [
+                  "A rocket speeds up upward. Are the forces balanced or unbalanced?",
+                  "Speeding up means motion is changing.",
+                  "The forces are ______.",
+                  [
+                        "unbalanced",
+                        "unbalanced forces"
+                  ],
+                  "Changing motion requires unbalanced forces.",
+                  "Unbalanced force confirmed. GO."
+            ]
+      ],
+      "stage5_gravity_and_weight": [
+            [
+                  "A rocket part has a mass of 3 kg. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Use W = m x g.",
+                  "W = 3 x 9.8 = ______ N",
+                  [
+                        "29.4",
+                        "29.4 N",
+                        "29.40",
+                        "29.40 N"
+                  ],
+                  "Multiply 3 by 9.8.",
+                  "Stage 5 complete. Gravity load calculated. GO."
+            ],
+            [
+                  "A payload has a mass of 5 kg. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Use W = m x g.",
+                  "W = 5 x 9.8 = ______ N",
+                  [
+                        "49",
+                        "49 N",
+                        "49.0",
+                        "49.0 N"
+                  ],
+                  "Multiply 5 by 9.8.",
+                  "Stage 5 complete. Payload weight calculated. GO."
+            ],
+            [
+                  "A small sensor has a mass of 600 g. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Convert grams to kilograms first.",
+                  "600 g = ____ kg\nW = ____ x 9.8 = ____ N",
+                  [
+                        "5.88",
+                        "5.88 N",
+                        "0.6 kg 5.88 N",
+                        "0.6 5.88"
+                  ],
+                  "600 g = 0.6 kg. Then multiply by 9.8.",
+                  "Stage 5 complete. Unit conversion verified. GO."
+            ],
+            [
+                  "A model rocket component has a mass of 1.5 kg. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Use W = m x g.",
+                  "W = 1.5 x 9.8 = ______ N",
+                  [
+                        "14.7",
+                        "14.7 N",
+                        "14.70",
+                        "14.70 N"
+                  ],
+                  "Multiply 1.5 by 9.8.",
+                  "Stage 5 complete. Weight force verified. GO."
+            ],
+            [
+                  "A fin assembly has a mass of 450 g. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Convert grams to kilograms first.",
+                  "450 g = ____ kg\nW = ____ x 9.8 = ____ N",
+                  [
+                        "4.41",
+                        "4.41 N",
+                        "0.45 kg 4.41 N",
+                        "0.45 4.41"
+                  ],
+                  "450 g = 0.45 kg. Then multiply by 9.8.",
+                  "Stage 5 complete. Gravity load verified. GO."
+            ],
+            [
+                  "Is 6 kg a mass or a weight force?",
+                  "In science, kg measures mass.",
+                  "6 kg is a ______.",
+                  [
+                        "mass"
+                  ],
+                  "Weight force is measured in newtons.",
+                  "Stage 5 complete. Mass/weight language verified. GO."
+            ],
+            [
+                  "A small payload has mass 2.2 kg. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Use W = m x g.",
+                  "W = 2.2 x 9.8 = ______ N",
+                  [
+                        "21.56",
+                        "21.56 N"
+                  ],
+                  "2.2 x 9.8 = 21.56.",
+                  "Stage 5 complete. Weight calculation verified. GO."
+            ],
+            [
+                  "A rocket camera has a mass of 250 g. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Convert grams to kilograms first.",
+                  "250 g = ____ kg\nW = ____ x 9.8 = ____ N",
+                  [
+                        "2.45",
+                        "2.45 N",
+                        "0.25 kg 2.45 N",
+                        "0.25 2.45"
+                  ],
+                  "250 g = 0.25 kg. Then multiply by 9.8.",
+                  "Stage 5 complete. Camera weight verified. GO."
+            ]
+      ],
+      "stage6_force_and_launch_calculations": [
+            [
+                  "An object has a mass of 5 kg and accelerates at 3 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 5 x 3 = ______ N",
+                  [
+                        "15",
+                        "15 N"
+                  ],
+                  "Multiply mass by acceleration.",
+                  "Stage 6 complete. Engine force verified. GO."
+            ],
+            [
+                  "A test object has a mass of 4 kg and accelerates at 6 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 4 x 6 = ______ N",
+                  [
+                        "24",
+                        "24 N"
+                  ],
+                  "Multiply 4 by 6.",
+                  "Stage 6 complete. Force calculation verified. GO."
+            ],
+            [
+                  "A payload has a mass of 6 kg and accelerates at 2 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 6 x 2 = ______ N",
+                  [
+                        "12",
+                        "12 N"
+                  ],
+                  "Multiply 6 by 2.",
+                  "Stage 6 complete. Force verified. GO."
+            ],
+            [
+                  "A drone part has a mass of 0.8 kg and accelerates at 5 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 0.8 x 5 = ______ N",
+                  [
+                        "4",
+                        "4 N",
+                        "4.0",
+                        "4.0 N"
+                  ],
+                  "Multiply 0.8 by 5.",
+                  "Stage 6 complete. Force calculation verified. GO."
+            ],
+            [
+                  "A launch cart has a mass of 7 kg and accelerates at 2 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 7 x 2 = ______ N",
+                  [
+                        "14",
+                        "14 N"
+                  ],
+                  "Multiply mass by acceleration.",
+                  "Stage 6 complete. Engine force confirmed. GO."
+            ],
+            [
+                  "Which formula connects force, mass and acceleration?",
+                  "This is Newton's Second Law.",
+                  "F = ______ x ______",
+                  [
+                        "m a",
+                        "ma",
+                        "m x a",
+                        "mass acceleration",
+                        "mass times acceleration",
+                        "F = ma",
+                        "F=ma"
+                  ],
+                  "Force equals mass times acceleration.",
+                  "Stage 6 complete. Formula selected. GO."
+            ],
+            [
+                  "A rocket test object has mass 1.2 kg and acceleration 4 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 1.2 x 4 = ______ N",
+                  [
+                        "4.8",
+                        "4.8 N"
+                  ],
+                  "1.2 x 4 = 4.8.",
+                  "Stage 6 complete. Force calculation confirmed. GO."
+            ],
+            [
+                  "A test sled has mass 9 kg and acceleration 3 m/s^2. Calculate the force.",
+                  "Use F = m x a.",
+                  "F = 9 x 3 = ______ N",
+                  [
+                        "27",
+                        "27 N"
+                  ],
+                  "Multiply 9 by 3.",
+                  "Stage 6 complete. Force calculation confirmed. GO."
+            ],
+            [
+                  "Complete the formula: F = ____ × a",
+                  "This formula connects force, mass and acceleration.",
+                  "F = ____ × a",
+                  [
+                        "m",
+                        "mass"
+                  ],
+                  "m represents mass.",
+                  "Formula completed. GO."
+            ],
+            [
+                  "In the formula F = m × a, what does F represent?",
+                  "Think about what the formula calculates.",
+                  "F represents ______.",
+                  [
+                        "force",
+                        "force in newtons",
+                        "force measured in newtons"
+                  ],
+                  "F represents force.",
+                  "F meaning confirmed. GO."
+            ],
+            [
+                  "In the formula F = m × a, what does m represent?",
+                  "This quantity is measured in kilograms.",
+                  "m represents ______.",
+                  [
+                        "mass",
+                        "mass in kilograms",
+                        "mass measured in kilograms"
+                  ],
+                  "m represents mass.",
+                  "m meaning confirmed. GO."
+            ],
+            [
+                  "In the formula F = m × a, what does a represent?",
+                  "This tells us how quickly velocity changes.",
+                  "a represents ______.",
+                  [
+                        "acceleration",
+                        "acceleration in m/s²",
+                        "acceleration measured in metres per second squared",
+                        "acceleration measured in meters per second squared"
+                  ],
+                  "a represents acceleration.",
+                  "a meaning confirmed. GO."
+            ],
+            [
+                  "Complete the formula: W = ____ × g",
+                  "This formula calculates weight force.",
+                  "W = ____ × g",
+                  [
+                        "m",
+                        "mass"
+                  ],
+                  "m represents mass.",
+                  "Weight formula completed. GO."
+            ],
+            [
+                  "In the formula W = m × g, what does W represent?",
+                  "This is not mass. It is a force.",
+                  "W represents ______.",
+                  [
+                        "weight",
+                        "weight force",
+                        "gravitational force",
+                        "Fg",
+                        "force of gravity"
+                  ],
+                  "W represents weight force.",
+                  "W meaning confirmed. GO."
+            ],
+            [
+                  "In the formula W = m × g, what does g represent?",
+                  "On Earth, we often use 9.8 for this value.",
+                  "g represents ______.",
+                  [
+                        "gravity",
+                        "gravitational field strength",
+                        "acceleration due to gravity",
+                        "gravity on earth"
+                  ],
+                  "g represents gravity or acceleration due to gravity.",
+                  "g meaning confirmed. GO."
+            ],
+            [
+                  "W can also be written as Fg. What does Fg mean?",
+                  "Think about the force caused by gravity.",
+                  "Fg means ______.",
+                  [
+                        "force of gravity",
+                        "gravitational force",
+                        "gravity force",
+                        "weight force",
+                        "weight"
+                  ],
+                  "Fg means gravitational force, also called weight force.",
+                  "Fg meaning confirmed. GO."
+            ],
+            [
+                  "Which formula should you use if a question gives mass and acceleration?",
+                  "Choose the correct method first.",
+                  "Use ______.",
+                  [
+                        "F = ma",
+                        "F=ma",
+                        "F = m × a",
+                        "F = m x a",
+                        "force equals mass times acceleration"
+                  ],
+                  "Mass and acceleration means use F = m × a.",
+                  "Method selected. GO."
+            ],
+            [
+                  "Which formula should you use if a question asks for weight force?",
+                  "Think about mass and gravity.",
+                  "Use ______.",
+                  [
+                        "W = mg",
+                        "W=mg",
+                        "W = m × g",
+                        "W = m x g",
+                        "weight equals mass times gravity"
+                  ],
+                  "Weight force means use W = m × g.",
+                  "Weight method selected. GO."
+            ],
+            [
+                  "A student uses F = m × a to calculate weight force. What formula should they use instead?",
+                  "Weight force depends on mass and gravity.",
+                  "They should use ______.",
+                  [
+                        "W = mg",
+                        "W=mg",
+                        "W = m × g",
+                        "W = m x g"
+                  ],
+                  "Weight force uses W = m × g.",
+                  "Formula error corrected. GO."
+            ],
+            [
+                  "A student writes that a rocket has a weight of 4 kg. What is wrong?",
+                  "kg measures mass, not weight force.",
+                  "4 kg is a ______, not a weight force.",
+                  [
+                        "mass",
+                        "mass measurement",
+                        "measurement of mass"
+                  ],
+                  "Weight force should be measured in newtons.",
+                  "Mass/weight distinction confirmed. GO."
+            ],
+            [
+                  "A student calculates W = 2 × 9.8 = 19.6 kg. What unit should be used instead?",
+                  "Weight is a force.",
+                  "The correct unit is ______.",
+                  [
+                        "N",
+                        "newton",
+                        "newtons"
+                  ],
+                  "Weight force is measured in newtons, not kilograms.",
+                  "Weight unit corrected. GO."
+            ]
+      ],
+      "stage7_final_launch_decision": [
+            [
+                  "Thrust = 100 N, weight = 55 N, drag = 15 N. Calculate the upward net force.",
+                  "Add the downward forces first, then subtract from thrust.",
+                  "Downward total = 55 + 15 = ____ N\nNet force = 100 - ____ = ____ N upward",
+                  [
+                        "30 N upward",
+                        "30N upward",
+                        "30 upward",
+                        "30 N up",
+                        "30N up"
+                  ],
+                  "The downward total is 70 N.",
+                  "Final launch decision approved. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 130 N, weight = 70 N, drag = 25 N. Calculate the upward net force.",
+                  "Weight and drag both act downward.",
+                  "Downward total = 70 + 25 = ____ N\nNet force = 130 - ____ = ____ N upward",
+                  [
+                        "35 N upward",
+                        "35N upward",
+                        "35 upward",
+                        "35 N up"
+                  ],
+                  "The downward total is 95 N.",
+                  "Final launch decision approved. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 160 N, weight = 90 N, drag = 30 N. Calculate the upward net force.",
+                  "Add downward forces first.",
+                  "Downward total = 90 + 30 = ____ N\nNet force = 160 - ____ = ____ N upward",
+                  [
+                        "40 N upward",
+                        "40N upward",
+                        "40 upward",
+                        "40 N up"
+                  ],
+                  "90 + 30 = 120. Then subtract from 160.",
+                  "Final launch decision approved. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 95 N, weight = 60 N, drag = 20 N. Calculate the upward net force.",
+                  "Subtract the downward total from thrust.",
+                  "Downward total = 60 + 20 = ____ N\nNet force = 95 - ____ = ____ N upward",
+                  [
+                        "15 N upward",
+                        "15N upward",
+                        "15 upward",
+                        "15 N up"
+                  ],
+                  "The downward total is 80 N.",
+                  "Final launch decision approved. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 85 N, weight = 60 N, drag = 30 N. Does the rocket have an upward resultant force?",
+                  "Compare thrust with weight plus drag.",
+                  "Downward total = 60 + 30 = ____ N\nThrust is ______ than downward total.",
+                  [
+                        "no",
+                        "no upward force",
+                        "no upward resultant",
+                        "no it does not",
+                        "does not"
+                  ],
+                  "The downward total is 90 N, which is greater than 85 N.",
+                  "Final launch risk identified. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 140 N, weight = 65 N, drag = 35 N. Calculate the upward net force.",
+                  "Add weight and drag first.",
+                  "Downward total = 65 + 35 = ____ N\nNet force = 140 - ____ = ____ N upward",
+                  [
+                        "40 N upward",
+                        "40N upward",
+                        "40 upward",
+                        "40 N up"
+                  ],
+                  "65 + 35 = 100. Then 140 - 100 = 40.",
+                  "Final launch decision approved. GO FOR LAUNCH."
+            ],
+            [
+                  "A rocket has thrust = 125 N, weight = 75 N and drag = 25 N. Is the net force upward, downward or balanced?",
+                  "Compare upward thrust with total downward force.",
+                  "Downward total = 75 + 25 = ____ N\nResultant = 125 - ____ = ____ N ______",
+                  [
+                        "25 N upward",
+                        "25 upward",
+                        "upward",
+                        "25 N up"
+                  ],
+                  "Downward total is 100 N. Thrust is larger.",
+                  "Final launch decision approved. GO FOR LAUNCH."
+            ],
+            [
+                  "A rocket has thrust = 120 N, weight = 80 N and drag = 40 N. What is the resultant force?",
+                  "Check whether upward and downward forces are equal.",
+                  "Downward total = 80 + 40 = ____ N\nResultant = 120 - ____ = ____ N",
+                  [
+                        "0 N",
+                        "0",
+                        "balanced",
+                        "zero",
+                        "no resultant"
+                  ],
+                  "The downward total equals the upward thrust.",
+                  "Final launch balance confirmed. GO FOR LAUNCH."
+            ],
+            [
+                  "A rocket part has a mass of 3 kg. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Use W = m × g.",
+                  "W = 3 × 9.8 = ______ N",
+                  [
+                        "29.4",
+                        "29.4 N",
+                        "29.40",
+                        "29.40 N"
+                  ],
+                  "Multiply 3 by 9.8.",
+                  "Weight force calculated. GO."
+            ],
+            [
+                  "A small sensor has a mass of 600 g. Calculate its weight force on Earth. Use g = 9.8.",
+                  "Convert grams to kilograms first.",
+                  "600 g = ____ kg\nW = ____ × 9.8 = ____ N",
+                  [
+                        "5.88",
+                        "5.88 N",
+                        "0.6 kg 5.88 N",
+                        "0.6 5.88"
+                  ],
+                  "600 g = 0.6 kg. Then multiply by 9.8.",
+                  "Weight force with conversion confirmed. GO."
+            ],
+            [
+                  "An object has a mass of 5 kg and accelerates at 3 m/s². Calculate the force.",
+                  "Use F = m × a.",
+                  "F = 5 × 3 = ______ N",
+                  [
+                        "15",
+                        "15 N"
+                  ],
+                  "Multiply mass by acceleration.",
+                  "Force calculated. GO."
+            ],
+            [
+                  "A drone part has a mass of 0.8 kg and accelerates at 5 m/s². Calculate the force.",
+                  "Use F = m × a.",
+                  "F = 0.8 × 5 = ______ N",
+                  [
+                        "4",
+                        "4 N",
+                        "4.0",
+                        "4.0 N"
+                  ],
+                  "0.8 × 5 = 4.",
+                  "Force calculation confirmed. GO."
+            ],
+            [
+                  "Thrust = 100 N, weight = 55 N, drag = 15 N. Calculate the upward net force.",
+                  "Add the downward forces first, then subtract from thrust.",
+                  "Downward total = 55 + 15 = ____ N\nNet force = 100 - ____ = ____ N upward",
+                  [
+                        "30 N upward",
+                        "30N upward",
+                        "30 upward",
+                        "30 N up",
+                        "30N up"
+                  ],
+                  "The downward total is 70 N.",
+                  "Launch force confirmed. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 130 N, weight = 70 N, drag = 25 N. Calculate the upward net force.",
+                  "Weight and drag both act downward.",
+                  "Downward total = 70 + 25 = ____ N\nNet force = 130 - ____ = ____ N upward",
+                  [
+                        "35 N upward",
+                        "35N upward",
+                        "35 upward",
+                        "35 N up"
+                  ],
+                  "The downward total is 95 N.",
+                  "Launch decision confirmed. GO FOR LAUNCH."
+            ],
+            [
+                  "Thrust = 85 N, weight = 60 N, drag = 30 N. Does the rocket have an upward resultant force?",
+                  "Compare thrust with weight plus drag.",
+                  "Downward total = 60 + 30 = ____ N\nThrust is ______ than downward total.",
+                  [
+                        "no",
+                        "no upward force",
+                        "no upward resultant",
+                        "no it does not",
+                        "does not"
+                  ],
+                  "The downward total is 90 N, which is greater than 85 N.",
+                  "Launch risk identified. GO."
+            ],
+            [
+                  "A rocket has thrust = 120 N, weight = 80 N and drag = 40 N. What is the resultant force?",
+                  "Check whether upward and downward forces are equal.",
+                  "Downward total = 80 + 40 = ____ N\nResultant = 120 - ____ = ____ N",
+                  [
+                        "0 N",
+                        "0",
+                        "balanced",
+                        "zero",
+                        "no resultant"
+                  ],
+                  "The downward total equals the upward thrust.",
+                  "Balanced launch force confirmed. GO."
+            ]
+      ]
+};
+
+    const stageConfigs = [
+      ["Stage 1 - Systems Check", "Camera 2 / 10-12 seconds", 10, 12, 1, "Stage 1 ready?", "Student 1: Unit Specialist", "stage1_systems_check"],
+      ["Stage 2 - Rocket Forces and Design", "Camera 3 / 12-14 seconds / 0.7x", 12, 14, .7, "Stage 2 ready?", "Student 2: Vector Engineer", "stage2_rocket_forces_and_design"],
+      ["Stage 3 - Vector Alignment", "Camera 4 / 14-17 seconds", 14, 17, 1, "Stage 3 ready?", "Student 3: Physics Law Officer", "stage3_vector_alignment"],
+      ["Stage 4 - Motion Law Check", "Camera 5 / 17-20 seconds", 17, 20, 1, "Stage 4 ready?", "Student 4: Gravity Engineer", "stage4_motion_law_check"],
+      ["Stage 5 - Gravity and Weight", "Camera 6 / 20-22 seconds", 20, 22, 1, "Stage 5 ready?", "Student 5: Launch Analyst", "stage5_gravity_and_weight"],
+      ["Stage 6 - Force Calculations", "Camera 7 / 22-26 seconds", 22, 26, 1, "Stage 6 ready?", "Whole Team", "stage6_force_and_launch_calculations"],
+      ["Stage 7 - Final Launch Decision", "Camera 8 / 26-30 seconds", 26, 30, 1, "Final stage ready?", "Whole Team", "stage7_final_launch_decision"]
+    ];
+
+    function pickQuestion(bankKey, usedIndexes = new Set()) {
+      const options = questionBank[bankKey];
+      let index = Math.floor(Math.random() * options.length);
+      if (usedIndexes.size < options.length) {
+        while (usedIndexes.has(index)) {
+          index = Math.floor(Math.random() * options.length);
+        }
+      }
+      usedIndexes.add(index);
+      const picked = options[index];
+      return {
+        question: picked[0],
+        prompt: picked[1],
+        working: picked[2],
+        accepted: expandAcceptedAnswers(picked[3]),
+        hint: picked[4],
+        success: picked[5]
+      };
+    }
+
+    function expandAcceptedAnswers(answers) {
+      const set = new Set(answers);
+      answers.forEach((answer) => {
+        const match = String(answer).match(/^(\d+(?:\.\d+)?)/);
+        if (match) {
+          set.add(match[1]);
+          set.add(`${match[1]} N`);
+          set.add(`${match[1]}N`);
+        }
+      });
+      return [...set];
+    }
+
+    function buildStages() {
+      return stageConfigs.map(([title, camera, start, end, rate, ready, role, bankKey]) => {
+        const usedIndexes = new Set();
+        const questions = [pickQuestion(bankKey, usedIndexes), pickQuestion(bankKey, usedIndexes)];
+        return { title, camera, start, end, rate, ready, role, questions };
+      });
+    }
+
+    let stages = buildStages();
+
+    let currentStage = -1;
+    let currentStageQuestion = 0;
+    let segment = { start: 0, end: 10, loop: true, finalMode: false };
+    let stagePassed = false;
+    let isMuted = true;
+    let typingToken = 0;
+    let finalTimers = [];
+
+    video.muted = isMuted;
+
+    function normaliseAnswer(answer) {
+      return answer
+        .toLowerCase()
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/,/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function typeText(element, text, speed = 10) {
+      const myToken = ++typingToken;
+      element.classList.add("typing");
+      element.textContent = "";
+      return new Promise((resolve) => {
+        let i = 0;
+        const tick = () => {
+          if (myToken !== typingToken) {
+            element.classList.remove("typing");
+            resolve();
+            return;
+          }
+          element.textContent = text.slice(0, i);
+          i += 1;
+          if (i <= text.length) {
+            window.setTimeout(tick, speed);
+          } else {
+            element.classList.remove("typing");
+            resolve();
+          }
+        };
+        tick();
+      });
+    }
+
+    function clearFinalTimers() {
+      finalTimers.forEach((timer) => window.clearTimeout(timer));
+      finalTimers = [];
+    }
+
+    function setFinalTimer(callback, delay) {
+      const timer = window.setTimeout(callback, delay);
+      finalTimers.push(timer);
+      return timer;
+    }
+
+    function buildQuestionDebrief() {
+      const concepts = new Set();
+      const add = (concept) => concepts.add(concept);
+      stages
+        .flatMap((stage) => stage.questions)
+        .map((question) => `${question.question} ${question.prompt} ${question.working} ${question.hint}`.toLowerCase())
+        .forEach((text) => {
+          if (/newton|inertia|balanced forces|unbalanced/.test(text)) add("Newton's First Law: motion changes only when forces are unbalanced.");
+          if (/drag|cd|terminal/.test(text)) add("Drag opposes motion; lower Cd usually means less drag.");
+          if (/contact|non-contact|non contact|noncontact/.test(text)) add("Forces can be contact forces or non-contact forces.");
+          if (/vector|resultant|direction|arrow/.test(text)) add("Vectors have size and direction; resultant force is the overall vector.");
+          if (/w =|weight|fg|gravity|gravitational/.test(text)) add("Weight is a force: W = m x g, measured in newtons.");
+          if (/f =|acceleration|mass times acceleration|force equals/.test(text)) add("Newton's Second Law: F = m x a.");
+          if (/mass|kilogram|kg/.test(text)) add("Mass is measured in kilograms; force is measured in newtons.");
+          if (/stability|stable|wobbles/.test(text)) add("Good rocket design balances low drag with stable flight.");
+          if (/wind|sideways/.test(text)) add("Wind can create sideways forces on a rocket.");
+        });
+      if (!concepts.size) {
+        add("Forces have size and direction.");
+        add("Balanced forces do not change motion.");
+        add("Engineers use evidence to improve rocket design.");
+      }
+      return [...concepts]
+        .map((concept, index) => `${index + 1}. ${concept}`)
+        .join("\n");
+    }
+
+    async function renderCurrentQuestion() {
+      const stage = stages[currentStage];
+      const question = stage.questions[currentStageQuestion];
+      els.answerInput.value = "";
+      els.answerInput.disabled = false;
+      document.getElementById("submitAnswer").disabled = false;
+      els.feedbackText.className = "feedback";
+      els.feedbackText.textContent = "Awaiting response.";
+      els.readyText.textContent = "";
+      els.questionText.textContent = "";
+      els.promptText.textContent = "";
+      els.workingText.textContent = "";
+      els.promptText.classList.add("hidden");
+      els.workingText.classList.add("hidden");
+      await typeText(els.readyText, `${stage.ready} / Question ${currentStageQuestion + 1} of 2`, 8);
+      await typeText(els.questionText, question.question, 8);
+      els.answerInput.focus();
+    }
+
+    async function revealCurrentQuestionHelp() {
+      const question = getCurrentQuestion();
+      els.promptText.classList.remove("hidden");
+      els.workingText.classList.remove("hidden");
+      if (!els.promptText.textContent.trim()) {
+        await typeText(els.promptText, question.prompt, 7);
+      }
+      if (!els.workingText.textContent.trim()) {
+        await typeText(els.workingText, question.working, 7);
+      }
+    }
+
+    function playSegment(start, end, playbackRate = 1, shouldLoop = true) {
+      segment = { start, end, loop: shouldLoop, finalMode: false };
+      stagePassed = !shouldLoop;
+      video.playbackRate = playbackRate;
+      video.currentTime = start;
+      video.play().catch(() => {
+        els.statusLine.textContent = "Tap START SYSTEM to enable video";
+      });
+    }
+
+    function loopCurrentSegment() {
+      if (!segment.loop || stagePassed || segment.finalMode) return;
+      if (video.currentTime >= segment.end) {
+        video.currentTime = segment.start;
+        video.play().catch(() => {});
+      }
+    }
+
+    function updateSoundButtons() {
+      const label = isMuted ? "Sound Off" : "Sound On";
+      els.soundToggle.textContent = label;
+      els.setupSound.textContent = label;
+      els.finalMusicToggle.textContent = isMuted ? "Turn Music On" : "Turn Music Off";
+      video.muted = isMuted;
+    }
+
+    function toggleSound() {
+      isMuted = !isMuted;
+      updateSoundButtons();
+      video.play().catch(() => {});
+    }
+
+    function renderProgress() {
+      const labels = ["Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5", "Stage 6", "Final"];
+      els.stageStrip.innerHTML = "";
+      labels.forEach((label, index) => {
+        const item = document.createElement("span");
+        item.textContent = label;
+        if (index < currentStage) item.classList.add("done");
+        if (index === currentStage) item.classList.add("active");
+        els.stageStrip.appendChild(item);
+      });
+    }
+
+    function getCrew() {
+      return {
+        group: document.getElementById("groupName").value.trim(),
+        rocket: document.getElementById("rocketName").value.trim(),
+        students: setupInputs.slice(2).map((input) => input.value.trim())
+      };
+    }
+
+    function updateMeta() {
+      const crew = getCrew();
+      els.metaGroup.textContent = crew.group || "Awaiting crew file";
+      els.metaRocket.textContent = crew.rocket || "Unassigned";
+    }
+
+    function setupReady() {
+      return setupInputs.every((input) => input.value.trim().length > 0);
+    }
+
+    async function startSetup() {
+      clearFinalTimers();
+      document.body.classList.remove("final-launch");
+      currentStage = -1;
+      renderProgress();
+      setupPanel.classList.remove("hidden", "good", "warn");
+      questionPanel.classList.add("hidden");
+      finalScreen.classList.remove("show", "black", "credits", "fade-card", "complete");
+      els.finalSummary.classList.remove("show");
+      els.finalSummaryText.textContent = "";
+      els.finalMusicToggle.classList.add("hidden");
+      els.metaStage.textContent = "Crew Setup";
+      els.statusLine.textContent = "Camera 1 looping";
+      playSegment(0, 10, 1, true);
+      await typeText(els.heroTitle, "Mission Control", 9);
+      await typeText(els.setupTitle, "Crew Manifest", 10);
+      await typeText(els.setupPrompt, "Enter your group, rocket, and five mission roles.", 8);
+    }
+
+    async function restartWithExistingCrew() {
+      clearFinalTimers();
+      document.body.classList.remove("final-launch");
+      finalScreen.classList.remove("show", "black", "credits", "fade-card", "complete");
+      els.finalSummary.classList.remove("show");
+      els.finalSummaryText.textContent = "";
+      els.finalMusicToggle.classList.add("hidden");
+      stages = buildStages();
+      currentStage = -1;
+      updateMeta();
+      els.statusLine.textContent = "Rearming mission";
+      await goToNextStage();
+    }
+
+    async function beginMission() {
+      updateMeta();
+      if (!setupReady()) {
+        setupPanel.classList.add("warn");
+        setupPanel.classList.remove("good");
+        await typeText(els.setupFeedback, "CHECK CREW FILE: Complete every field before launch readiness can begin.", 8);
+        return;
+      }
+      setupPanel.classList.add("good");
+      setupPanel.classList.remove("warn");
+      await typeText(els.setupFeedback, "CREW FILE ACCEPTED. TRANSFERRING TO CAMERA 2.", 8);
+      stages = buildStages();
+      goToNextStage();
+    }
+
+    async function goToNextStage() {
+      currentStage += 1;
+      if (currentStage >= stages.length) {
+        launchSuccessSequence();
+        return;
+      }
+
+      const stage = stages[currentStage];
+      currentStageQuestion = 0;
+      stagePassed = false;
+      setupPanel.classList.add("hidden");
+      questionPanel.classList.remove("hidden", "good", "warn");
+      questionPanel.classList.add("glitch");
+      window.setTimeout(() => questionPanel.classList.remove("glitch"), 520);
+      els.answerInput.value = "";
+      els.answerInput.disabled = false;
+      document.getElementById("submitAnswer").disabled = false;
+      els.feedbackText.className = "feedback";
+      els.feedbackText.textContent = "Awaiting response.";
+      els.metaStage.textContent = stage.title;
+      els.statusLine.textContent = "Awaiting stage response";
+      renderProgress();
+      playSegment(stage.start, stage.end, stage.rate, true);
+
+      const crew = getCrew();
+      const studentName = crew.students[currentStage] || "";
+      let roleText = stage.role;
+      if (currentStage >= 0 && currentStage < 5 && studentName) {
+        roleText = `${studentName}: ${crewRoles[currentStage]}`;
+      }
+
+      els.cameraLabel.textContent = stage.camera;
+      els.roleLabel.textContent = roleText;
+      await typeText(els.stageTitle, stage.title, 9);
+      await renderCurrentQuestion();
+    }
+
+    function getCurrentQuestion() {
+      return stages[currentStage].questions[currentStageQuestion];
+    }
+
+    function answerIsCorrect(question, answer) {
+      const given = normaliseAnswer(answer);
+      return question.accepted.some((accepted) => normaliseAnswer(accepted) === given);
+    }
+
+    async function submitAnswer() {
+      if (currentStage < 0) return;
+      const stage = stages[currentStage];
+      const question = getCurrentQuestion();
+      if (answerIsCorrect(question, els.answerInput.value)) {
+        questionPanel.classList.add("good");
+        questionPanel.classList.remove("warn");
+        els.feedbackText.className = "feedback good";
+        els.answerInput.disabled = true;
+        document.getElementById("submitAnswer").disabled = true;
+        await typeText(els.feedbackText, question.success, 8);
+        if (currentStageQuestion < stage.questions.length - 1) {
+          currentStageQuestion += 1;
+          await typeText(els.feedbackText, "Question secured. Continue stage check.", 8);
+          questionPanel.classList.remove("good", "warn");
+          await renderCurrentQuestion();
+        } else {
+          stagePassed = true;
+          segment.loop = false;
+          await showGo(`Stage ${currentStage + 1}: GO`);
+          goToNextStage();
+        }
+      } else {
+        questionPanel.classList.add("warn");
+        questionPanel.classList.remove("good");
+        els.feedbackText.className = "feedback warn";
+        await revealCurrentQuestionHelp();
+        await typeText(els.feedbackText, `CHECK METHOD: ${question.hint}`, 8);
+      }
+    }
+
+    async function showHint() {
+      if (currentStage < 0) return;
+      const question = getCurrentQuestion();
+      questionPanel.classList.add("warn");
+      els.feedbackText.className = "feedback warn";
+      await revealCurrentQuestionHelp();
+      await typeText(els.feedbackText, `CHECK METHOD: ${question.hint}`, 8);
+    }
+
+    function speakGo() {
+      if (isMuted || !("speechSynthesis" in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("Go");
+        msg.rate = .85;
+        msg.pitch = .8;
+        window.speechSynthesis.speak(msg);
+      } catch (error) {
+        // Visual clearance remains available when speech synthesis is blocked.
+      }
+    }
+
+    function showGo(text) {
+      return new Promise((resolve) => {
+        goText.textContent = text;
+        goOverlay.classList.add("show");
+        speakGo();
+        window.setTimeout(() => {
+          goOverlay.classList.remove("show");
+          resolve();
+        }, 1050);
+      });
+    }
+
+    function launchSuccessSequence() {
+      clearFinalTimers();
+      document.body.classList.add("final-launch");
+      isMuted = false;
+      updateSoundButtons();
+      els.finalMusicToggle.classList.remove("hidden");
+      currentStage = stages.length;
+      renderProgress();
+      questionPanel.classList.add("hidden");
+      setupPanel.classList.add("hidden");
+      els.metaStage.textContent = "Launch Success";
+      els.statusLine.textContent = "Final launch sequence";
+      finalScreen.className = "final-screen show credits";
+      document.getElementById("finalTitle").textContent = "";
+      document.getElementById("finalMessage").textContent = "";
+      els.finalCrew.textContent = "";
+      els.finalSummary.classList.remove("show");
+      els.finalSummaryText.textContent = "";
+      typeText(document.getElementById("finalTitle"), "Congrats Mission Complete", 12)
+        .then(() => typeText(document.getElementById("finalMessage"), "Rocket launch successful.", 10));
+
+      setFinalTimer(() => {
+        finalScreen.classList.add("fade-card");
+      }, 4300);
+
+      setFinalTimer(() => {
+        const crew = getCrew();
+        const crewLines = crew.students
+          .filter(Boolean)
+          .map((name, index) => `${name} - ${crewRoles[index]}`)
+          .join("\n");
+        finalScreen.classList.remove("fade-card");
+        document.getElementById("finalTitle").textContent = "";
+        document.getElementById("finalMessage").textContent = "";
+        els.finalCrew.textContent = "";
+        typeText(document.getElementById("finalTitle"), "Crew List", 12)
+          .then(() => typeText(els.finalCrew, crewLines, 10))
+          .then(() => {
+            setFinalTimer(() => {
+              finalScreen.classList.add("fade-card");
+            }, 700);
+            setFinalTimer(() => {
+              finalScreen.classList.remove("show", "credits", "fade-card");
+              document.getElementById("finalTitle").textContent = "";
+              document.getElementById("finalMessage").textContent = "";
+              els.finalCrew.textContent = "";
+              els.finalSummary.classList.add("show");
+              typeText(els.finalSummaryText, buildQuestionDebrief(), 5);
+            }, 1500);
+          });
+      }, 5400);
+
+      setFinalTimer(() => {
+        els.finalSummary.classList.remove("show");
+        els.finalSummaryText.textContent = "";
+      }, 19000);
+
+      segment = { start: 30, end: 55, loop: false, finalMode: "first" };
+      video.playbackRate = 1;
+      video.currentTime = 30;
+      video.play().catch(() => {});
+    }
+
+    function handleFinalSequence() {
+      if (segment.finalMode === "first" && video.currentTime >= 55) {
+        segment = { start: 80, end: 85, loop: false, finalMode: "second" };
+        video.currentTime = 80;
+        video.play().catch(() => {});
+      } else if (segment.finalMode === "second" && video.currentTime >= 85) {
+        segment.finalMode = "done";
+        video.pause();
+        finalScreen.classList.remove("credits", "fade-card");
+        finalScreen.classList.add("show", "complete");
+        window.setTimeout(() => finalScreen.classList.add("black"), 50);
+        document.getElementById("finalTitle").textContent = "Ready For Another Launch?";
+        document.getElementById("finalMessage").textContent = "Launch another rocket?";
+        els.finalCrew.textContent = "";
+        els.finalSummary.classList.remove("show");
+        els.finalSummaryText.textContent = "";
+        els.finalMusicToggle.classList.add("hidden");
+      }
+    }
+
+    function replaySegment() {
+      if (currentStage < 0) {
+        playSegment(0, 10, 1, true);
+        return;
+      }
+      const stage = stages[currentStage];
+      playSegment(stage.start, stage.end, stage.rate, true);
+    }
+
+    video.addEventListener("timeupdate", () => {
+      loopCurrentSegment();
+      handleFinalSequence();
+    });
+
+    video.addEventListener("error", () => {
+      els.statusLine.textContent = "Video missing: expected rocket_launch.mp4";
+    });
+
+    document.getElementById("startButton").addEventListener("click", () => {
+      startGate.classList.remove("show");
+      startSetup();
+    });
+
+    document.getElementById("beginMission").addEventListener("click", beginMission);
+    document.getElementById("replaySetup").addEventListener("click", replaySegment);
+    document.getElementById("submitAnswer").addEventListener("click", submitAnswer);
+    document.getElementById("hintButton").addEventListener("click", showHint);
+    document.getElementById("replayButton").addEventListener("click", replaySegment);
+    document.getElementById("launchAgain").addEventListener("click", () => {
+      restartWithExistingCrew();
+    });
+    els.soundToggle.addEventListener("click", toggleSound);
+    els.setupSound.addEventListener("click", toggleSound);
+    els.finalMusicToggle.addEventListener("click", toggleSound);
+    els.answerInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitAnswer();
+    });
+    setupInputs.forEach((input) => input.addEventListener("input", updateMeta));
+
+    updateSoundButtons();
+    renderProgress();
+  </script>
+</body>
+</html>
