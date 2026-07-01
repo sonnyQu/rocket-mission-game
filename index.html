@@ -630,7 +630,8 @@
   </style>
 </head>
 <body>
-  <video id="bgVideo" src="rocket_launch.mp4" preload="auto" playsinline></video>
+  <video id="bgVideo" src="rocket_launch.mp4" preload="auto" playsinline muted></video>
+  <video id="musicTrack" src="rocket_launch.mp4" preload="auto" playsinline class="hidden"></video>
   <div class="shade" aria-hidden="true"></div>
   <div class="scan" aria-hidden="true"></div>
 
@@ -667,7 +668,7 @@
           <h2 id="setupTitle" class="stage-title">Crew Manifest</h2>
           <div class="role">Enter your group, rocket, and available crew members.</div>
         </div>
-        <button id="setupSound" class="sound secondary" type="button">Sound On</button>
+        <button id="setupSound" class="sound secondary" type="button">Music On</button>
       </div>
       <div class="panel-body">
         <p id="setupPrompt" class="prompt">Enter your group, rocket, and 1-5 student names.</p>
@@ -709,7 +710,7 @@
           <h2 id="stageTitle" class="stage-title"></h2>
           <div id="roleLabel" class="role"></div>
         </div>
-        <button id="soundToggle" class="sound secondary" type="button">Sound On</button>
+        <button id="soundToggle" class="sound secondary" type="button">Music On</button>
       </div>
       <div class="panel-body">
         <p id="readyText" class="small-label"></p>
@@ -760,10 +761,11 @@
     <div id="finalSummaryText"></div>
   </aside>
 
-  <button id="finalMusicToggle" class="final-music-toggle hidden" type="button">Music On</button>
+  <button id="finalMusicToggle" class="final-music-toggle hidden" type="button">Turn Music Off</button>
 
   <script>
     const video = document.getElementById("bgVideo");
+    const musicTrack = document.getElementById("musicTrack");
     const setupPanel = document.getElementById("setupPanel");
     const questionPanel = document.getElementById("questionPanel");
     const startGate = document.getElementById("startGate");
@@ -2340,11 +2342,17 @@
     let currentStageQuestion = 0;
     let segment = { start: 0, end: 10, loop: true, finalMode: false };
     let stagePassed = false;
-    let isMuted = false;
+    let isMusicMuted = false;
     let typingToken = 0;
     let finalTimers = [];
+    const MUSIC_START = 60;
+    const MUSIC_END = 85;
+    const MUSIC_FULL_VOLUME = .72;
+    const MUSIC_DUCK_VOLUME = .18;
 
-    video.muted = isMuted;
+    video.muted = true;
+    musicTrack.volume = MUSIC_FULL_VOLUME;
+    musicTrack.muted = isMusicMuted;
 
     function normaliseAnswer(answer) {
       return answer
@@ -2456,6 +2464,7 @@
     function playSegment(start, end, playbackRate = 1, shouldLoop = true) {
       segment = { start, end, loop: shouldLoop, finalMode: false };
       stagePassed = !shouldLoop;
+      video.muted = true;
       video.playbackRate = playbackRate;
       video.currentTime = start;
       video.play().catch(() => {
@@ -2472,17 +2481,34 @@
     }
 
     function updateSoundButtons() {
-      const label = isMuted ? "Sound Off" : "Sound On";
+      const label = isMusicMuted ? "Music Off" : "Music On";
       els.soundToggle.textContent = label;
       els.setupSound.textContent = label;
-      els.finalMusicToggle.textContent = isMuted ? "Turn Music On" : "Turn Music Off";
-      video.muted = isMuted;
+      els.finalMusicToggle.textContent = isMusicMuted ? "Turn Music On" : "Turn Music Off";
+      musicTrack.muted = isMusicMuted;
     }
 
-    function toggleSound() {
-      isMuted = !isMuted;
+    function ensureMusicPlaying() {
+      if (musicTrack.currentTime < MUSIC_START || musicTrack.currentTime >= MUSIC_END) {
+        musicTrack.currentTime = MUSIC_START;
+      }
+      if (!isMusicMuted) {
+        musicTrack.play().catch(() => {});
+      }
+    }
+
+    function toggleMusic() {
+      isMusicMuted = !isMusicMuted;
       updateSoundButtons();
-      video.play().catch(() => {});
+      ensureMusicPlaying();
+    }
+
+    function duckMusic(duration = 1300) {
+      if (isMusicMuted) return;
+      musicTrack.volume = MUSIC_DUCK_VOLUME;
+      window.setTimeout(() => {
+        if (!isMusicMuted) musicTrack.volume = MUSIC_FULL_VOLUME;
+      }, duration);
     }
 
     function renderProgress() {
@@ -2657,7 +2683,8 @@
     }
 
     function speakGo() {
-      if (isMuted || !("speechSynthesis" in window)) return;
+      duckMusic(1400);
+      if (!("speechSynthesis" in window)) return;
       try {
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance("Go");
@@ -2684,8 +2711,9 @@
     function launchSuccessSequence() {
       clearFinalTimers();
       document.body.classList.add("final-launch");
-      isMuted = false;
+      isMusicMuted = false;
       updateSoundButtons();
+      ensureMusicPlaying();
       els.finalMusicToggle.classList.remove("hidden");
       currentStage = stages.length;
       renderProgress();
@@ -2778,13 +2806,26 @@
       handleFinalSequence();
     });
 
+    musicTrack.addEventListener("timeupdate", () => {
+      if (musicTrack.currentTime >= MUSIC_END) {
+        musicTrack.currentTime = MUSIC_START;
+        musicTrack.play().catch(() => {});
+      }
+    });
+
+    musicTrack.addEventListener("ended", () => {
+      musicTrack.currentTime = MUSIC_START;
+      ensureMusicPlaying();
+    });
+
     video.addEventListener("error", () => {
       els.statusLine.textContent = "Video missing: expected rocket_launch.mp4";
     });
 
     function startSystemFromGate() {
-      isMuted = false;
+      isMusicMuted = false;
       updateSoundButtons();
+      ensureMusicPlaying();
       startGate.classList.remove("show");
       startSetup();
     }
@@ -2808,9 +2849,9 @@
     document.getElementById("launchAgain").addEventListener("click", () => {
       restartWithExistingCrew();
     });
-    els.soundToggle.addEventListener("click", toggleSound);
-    els.setupSound.addEventListener("click", toggleSound);
-    els.finalMusicToggle.addEventListener("click", toggleSound);
+    els.soundToggle.addEventListener("click", toggleMusic);
+    els.setupSound.addEventListener("click", toggleMusic);
+    els.finalMusicToggle.addEventListener("click", toggleMusic);
     els.answerInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") submitAnswer();
     });
