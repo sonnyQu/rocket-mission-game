@@ -2383,7 +2383,6 @@
     let missionLawTimer = null;
     let musicFadeTimer = null;
     let musicHasFaded = false;
-    let stageReadyVoiceIndex = 0;
     let finalTimers = [];
     const MUSIC_START = 60;
     const MUSIC_END = 110;
@@ -2776,7 +2775,7 @@
         } else {
           stagePassed = true;
           segment.loop = false;
-          await showGo(`Stage ${currentStage + 1} is ready`, currentStage + 1);
+          await showGo(`Stage ${currentStage + 1}: GO`);
           goToNextStage();
         }
       } else {
@@ -2797,48 +2796,29 @@
       await typeText(els.feedbackText, `CHECK METHOD: ${question.hint}`, 8);
     }
 
-    function pickStageVoice(preferFemale) {
-      if (!("speechSynthesis" in window)) return null;
-      const voices = window.speechSynthesis.getVoices();
-      const naturalHints = /natural|online|neural|premium/i;
-      const femaleHints = /female|woman|samantha|victoria|susan|zira|aria|jenny|michelle|karen|moira|tessa|libby|sonia/i;
-      const maleHints = /male|man|david|mark|george|daniel|alex|fred|tom|guy|ryan/i;
-      const targetHints = preferFemale ? femaleHints : maleHints;
-      const englishVoices = voices.filter((voice) => /^en/i.test(voice.lang));
-      const preferred = englishVoices.find((voice) => naturalHints.test(`${voice.name} ${voice.voiceURI}`) && targetHints.test(`${voice.name} ${voice.voiceURI}`))
-        || englishVoices.find((voice) => targetHints.test(`${voice.name} ${voice.voiceURI}`))
-        || englishVoices.find((voice) => naturalHints.test(`${voice.name} ${voice.voiceURI}`));
-      return preferred || englishVoices[0] || voices[0] || null;
-    }
-
-    function speakStageReady(stageNumber) {
-      duckMusic(2600);
+    function speakGo() {
+      duckMusic(1400);
       if (!("speechSynthesis" in window)) return;
       try {
         window.speechSynthesis.cancel();
-        const useFemaleStyle = stageReadyVoiceIndex % 2 === 0;
-        const msg = new SpeechSynthesisUtterance(`Mission control. Stage ${stageNumber} is ready.`);
-        const voice = pickStageVoice(useFemaleStyle);
-        if (voice) msg.voice = voice;
-        msg.rate = .78;
-        msg.pitch = useFemaleStyle ? 1.02 : .94;
-        msg.volume = .95;
-        stageReadyVoiceIndex += 1;
+        const msg = new SpeechSynthesisUtterance("Go");
+        msg.rate = .85;
+        msg.pitch = .8;
         window.speechSynthesis.speak(msg);
       } catch (error) {
         // Visual clearance remains available when speech synthesis is blocked.
       }
     }
 
-    function showGo(text, stageNumber) {
+    function showGo(text) {
       return new Promise((resolve) => {
-        goText.textContent = text.toUpperCase();
+        goText.textContent = text;
         goOverlay.classList.add("show");
-        speakStageReady(stageNumber);
+        speakGo();
         window.setTimeout(() => {
           goOverlay.classList.remove("show");
           resolve();
-        }, 2400);
+        }, 1050);
       });
     }
 
@@ -2955,13 +2935,6 @@
     musicTrack.addEventListener("loadedmetadata", () => {
       setMusicToLoopStart();
     });
-
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
 
     video.addEventListener("error", () => {
       els.statusLine.textContent = "Video missing: expected rocket_launch.mp4";
