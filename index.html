@@ -2351,6 +2351,7 @@
     let typingToken = 0;
     let finalTimers = [];
     const MUSIC_START = 60;
+    const MUSIC_END = 110;
     const MUSIC_FULL_VOLUME = .72;
     const MUSIC_DUCK_VOLUME = .18;
 
@@ -2502,8 +2503,7 @@
     }
 
     function ensureMusicPlaying() {
-      const duration = Number.isFinite(musicTrack.duration) ? musicTrack.duration : 0;
-      if (musicTrack.currentTime < MUSIC_START || (duration && musicTrack.currentTime >= duration - .25)) {
+      if (musicTrack.currentTime < MUSIC_START || musicTrack.currentTime >= MUSIC_END - .25) {
         musicTrack.currentTime = MUSIC_START;
       }
       if (!isMusicMuted) {
@@ -2823,8 +2823,7 @@
     });
 
     musicTrack.addEventListener("timeupdate", () => {
-      const duration = Number.isFinite(musicTrack.duration) ? musicTrack.duration : 0;
-      if (duration && musicTrack.currentTime >= duration - .25) {
+      if (musicTrack.currentTime >= MUSIC_END - .25) {
         musicTrack.currentTime = MUSIC_START;
         musicTrack.play().catch(() => {});
       }
