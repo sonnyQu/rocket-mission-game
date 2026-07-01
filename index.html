@@ -2378,14 +2378,17 @@
     let typingToken = 0;
     let missionLawToken = 0;
     let missionLawTimer = null;
+    let musicFadeTimer = null;
+    let musicHasFaded = false;
     let finalTimers = [];
     const MUSIC_START = 60;
     const MUSIC_END = 110;
-    const MUSIC_FULL_VOLUME = .72;
-    const MUSIC_DUCK_VOLUME = .18;
+    const MUSIC_INITIAL_VOLUME = .72;
+    const MUSIC_FULL_VOLUME = .43;
+    const MUSIC_DUCK_VOLUME = .13;
 
     video.muted = true;
-    musicTrack.volume = MUSIC_FULL_VOLUME;
+    musicTrack.volume = MUSIC_INITIAL_VOLUME;
     musicTrack.muted = isMusicMuted;
 
     function normaliseAnswer(answer) {
@@ -2460,12 +2463,15 @@
       });
       for (const item of items) {
         if (token !== missionLawToken) return;
-        await sleep(280);
-        if (token !== missionLawToken) return;
-        item.textContent = item.dataset.law;
         item.classList.remove("law-flip");
         void item.offsetWidth;
         item.classList.add("law-flip");
+        const text = item.dataset.law;
+        for (let i = 0; i <= text.length; i += 1) {
+          if (token !== missionLawToken) return;
+          item.textContent = text.slice(0, i);
+          await sleep(8);
+        }
       }
       if (token === missionLawToken) {
         missionLawTimer = window.setTimeout(typeMissionLaws, 4000);
@@ -2563,11 +2569,32 @@
       return true;
     }
 
+    function fadeMusicToFullVolume() {
+      if (musicHasFaded || isMusicMuted) return;
+      musicHasFaded = true;
+      if (musicFadeTimer) window.clearInterval(musicFadeTimer);
+      const startVolume = musicTrack.volume || MUSIC_INITIAL_VOLUME;
+      const steps = 40;
+      let step = 0;
+      musicFadeTimer = window.setInterval(() => {
+        step += 1;
+        const progress = Math.min(step / steps, 1);
+        musicTrack.volume = startVolume + ((MUSIC_FULL_VOLUME - startVolume) * progress);
+        if (progress >= 1) {
+          window.clearInterval(musicFadeTimer);
+          musicFadeTimer = null;
+          musicTrack.volume = MUSIC_FULL_VOLUME;
+        }
+      }, 100);
+    }
+
     function ensureMusicPlaying() {
       if (musicTrack.readyState < 1) {
         musicTrack.addEventListener("loadedmetadata", () => {
           setMusicToLoopStart();
-          if (!isMusicMuted) musicTrack.play().catch(() => {});
+          if (!isMusicMuted) {
+            musicTrack.play().then(fadeMusicToFullVolume).catch(() => {});
+          }
         }, { once: true });
         return;
       }
@@ -2575,7 +2602,7 @@
         setMusicToLoopStart();
       }
       if (!isMusicMuted) {
-        musicTrack.play().catch(() => {});
+        musicTrack.play().then(fadeMusicToFullVolume).catch(() => {});
       }
     }
 
