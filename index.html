@@ -166,12 +166,39 @@
       font-size: clamp(12px, 1.1vw, 15px);
       line-height: 1.32;
       letter-spacing: .04em;
+      perspective: 700px;
+    }
+
+    .mission-laws li {
+      min-height: 1.32em;
+      transform-origin: 50% 0;
     }
 
     .mission-laws li::before {
       content: ">";
       margin-right: 8px;
       color: var(--cyan);
+    }
+
+    .mission-laws li.law-flip {
+      animation: lawFlip .42s ease-out both;
+    }
+
+    @keyframes lawFlip {
+      0% {
+        opacity: 0;
+        transform: rotateX(-86deg);
+        filter: brightness(1.8);
+      }
+      48% {
+        opacity: .72;
+        transform: rotateX(18deg);
+      }
+      100% {
+        opacity: 1;
+        transform: rotateX(0);
+        filter: brightness(1);
+      }
     }
 
     .mission-laws.hidden {
@@ -2349,6 +2376,8 @@
     let stagePassed = false;
     let isMusicMuted = false;
     let typingToken = 0;
+    let missionLawToken = 0;
+    let missionLawTimer = null;
     let finalTimers = [];
     const MUSIC_START = 60;
     const MUSIC_END = 110;
@@ -2408,12 +2437,38 @@
       return new Promise((resolve) => window.setTimeout(resolve, ms));
     }
 
+    function stopMissionLaws() {
+      missionLawToken += 1;
+      if (missionLawTimer) {
+        window.clearTimeout(missionLawTimer);
+        missionLawTimer = null;
+      }
+      els.missionLaws.classList.add("hidden");
+    }
+
     async function typeMissionLaws() {
+      const token = ++missionLawToken;
+      if (missionLawTimer) {
+        window.clearTimeout(missionLawTimer);
+        missionLawTimer = null;
+      }
       els.missionLaws.classList.remove("hidden");
       const items = [...els.missionLaws.querySelectorAll("li")];
-      items.forEach((item) => { item.textContent = ""; });
+      items.forEach((item) => {
+        item.textContent = "";
+        item.classList.remove("law-flip");
+      });
       for (const item of items) {
-        await typeText(item, item.dataset.law, 8);
+        if (token !== missionLawToken) return;
+        await sleep(280);
+        if (token !== missionLawToken) return;
+        item.textContent = item.dataset.law;
+        item.classList.remove("law-flip");
+        void item.offsetWidth;
+        item.classList.add("law-flip");
+      }
+      if (token === missionLawToken) {
+        missionLawTimer = window.setTimeout(typeMissionLaws, 4000);
       }
     }
 
@@ -2502,9 +2557,22 @@
       musicTrack.muted = isMusicMuted;
     }
 
+    function setMusicToLoopStart() {
+      if (musicTrack.readyState < 1) return false;
+      musicTrack.currentTime = MUSIC_START;
+      return true;
+    }
+
     function ensureMusicPlaying() {
+      if (musicTrack.readyState < 1) {
+        musicTrack.addEventListener("loadedmetadata", () => {
+          setMusicToLoopStart();
+          if (!isMusicMuted) musicTrack.play().catch(() => {});
+        }, { once: true });
+        return;
+      }
       if (musicTrack.currentTime < MUSIC_START || musicTrack.currentTime >= MUSIC_END - .25) {
-        musicTrack.currentTime = MUSIC_START;
+        setMusicToLoopStart();
       }
       if (!isMusicMuted) {
         musicTrack.play().catch(() => {});
@@ -2569,7 +2637,7 @@
       els.finalSummary.classList.remove("show");
       els.finalSummaryText.textContent = "";
       els.finalMusicToggle.classList.add("hidden");
-      els.missionLaws.classList.remove("hidden");
+      typeMissionLaws();
       els.metaStage.textContent = "Crew Setup";
       els.statusLine.textContent = "Camera 1 looping";
       playSegment(0, 10, 1, true);
@@ -2603,7 +2671,7 @@
       setupPanel.classList.add("good");
       setupPanel.classList.remove("warn");
       await typeText(els.setupFeedback, "CREW FILE ACCEPTED. TRANSFERRING TO CAMERA 2.", 8);
-      els.missionLaws.classList.add("hidden");
+      stopMissionLaws();
       stages = buildStages();
       goToNextStage();
     }
@@ -2824,14 +2892,18 @@
 
     musicTrack.addEventListener("timeupdate", () => {
       if (musicTrack.currentTime >= MUSIC_END - .25) {
-        musicTrack.currentTime = MUSIC_START;
+        setMusicToLoopStart();
         musicTrack.play().catch(() => {});
       }
     });
 
     musicTrack.addEventListener("ended", () => {
-      musicTrack.currentTime = MUSIC_START;
+      setMusicToLoopStart();
       ensureMusicPlaying();
+    });
+
+    musicTrack.addEventListener("loadedmetadata", () => {
+      setMusicToLoopStart();
     });
 
     video.addEventListener("error", () => {
