@@ -174,6 +174,10 @@
       color: var(--cyan);
     }
 
+    .mission-laws.hidden {
+      display: none;
+    }
+
     .question-panel,
     .setup-panel {
       grid-column: 2 / 3;
@@ -646,17 +650,17 @@
         <div>Group: <strong id="metaGroup">Awaiting crew file</strong></div>
         <div>Rocket: <strong id="metaRocket">Unassigned</strong></div>
       </div>
-      <div class="mission-laws" aria-label="Mission laws and concepts">
+      <div id="missionLaws" class="mission-laws" aria-label="Mission laws and concepts">
         <h2>Mission Laws</h2>
         <ul>
-          <li>Newton's First Law: balanced forces do not change motion.</li>
-          <li>Newton's Second Law: F = m x a.</li>
-          <li>Weight force: W = m x g.</li>
-          <li>Vectors have size and direction.</li>
-          <li>Resultant force is the overall vector.</li>
-          <li>Drag opposes motion; lower Cd usually means less drag.</li>
-          <li>Forces can be contact or non-contact.</li>
-          <li>Stable rocket design balances drag and stability.</li>
+          <li data-law="Newton's First Law: balanced forces do not change motion."></li>
+          <li data-law="Newton's Second Law: F = m x a."></li>
+          <li data-law="Weight force: W = m x g."></li>
+          <li data-law="Vectors have size and direction."></li>
+          <li data-law="Resultant force is the overall vector."></li>
+          <li data-law="Drag opposes motion; lower Cd usually means less drag."></li>
+          <li data-law="Forces can be contact or non-contact."></li>
+          <li data-law="Stable rocket design balances drag and stability."></li>
         </ul>
       </div>
     </section>
@@ -797,7 +801,8 @@
       finalCrew: document.getElementById("finalCrew"),
       finalSummary: document.getElementById("finalSummary"),
       finalSummaryText: document.getElementById("finalSummaryText"),
-      finalMusicToggle: document.getElementById("finalMusicToggle")
+      finalMusicToggle: document.getElementById("finalMusicToggle"),
+      missionLaws: document.getElementById("missionLaws")
     };
 
     const setupInputs = ["groupName", "rocketName", "student1", "student2", "student3", "student4", "student5"]
@@ -2346,7 +2351,6 @@
     let typingToken = 0;
     let finalTimers = [];
     const MUSIC_START = 60;
-    const MUSIC_END = 85;
     const MUSIC_FULL_VOLUME = .72;
     const MUSIC_DUCK_VOLUME = .18;
 
@@ -2401,6 +2405,15 @@
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    async function typeMissionLaws() {
+      els.missionLaws.classList.remove("hidden");
+      const items = [...els.missionLaws.querySelectorAll("li")];
+      items.forEach((item) => { item.textContent = ""; });
+      for (const item of items) {
+        await typeText(item, item.dataset.law, 8);
+      }
     }
 
     function buildQuestionDebrief() {
@@ -2489,7 +2502,8 @@
     }
 
     function ensureMusicPlaying() {
-      if (musicTrack.currentTime < MUSIC_START || musicTrack.currentTime >= MUSIC_END) {
+      const duration = Number.isFinite(musicTrack.duration) ? musicTrack.duration : 0;
+      if (musicTrack.currentTime < MUSIC_START || (duration && musicTrack.currentTime >= duration - .25)) {
         musicTrack.currentTime = MUSIC_START;
       }
       if (!isMusicMuted) {
@@ -2555,6 +2569,7 @@
       els.finalSummary.classList.remove("show");
       els.finalSummaryText.textContent = "";
       els.finalMusicToggle.classList.add("hidden");
+      els.missionLaws.classList.remove("hidden");
       els.metaStage.textContent = "Crew Setup";
       els.statusLine.textContent = "Camera 1 looping";
       playSegment(0, 10, 1, true);
@@ -2588,6 +2603,7 @@
       setupPanel.classList.add("good");
       setupPanel.classList.remove("warn");
       await typeText(els.setupFeedback, "CREW FILE ACCEPTED. TRANSFERRING TO CAMERA 2.", 8);
+      els.missionLaws.classList.add("hidden");
       stages = buildStages();
       goToNextStage();
     }
@@ -2807,7 +2823,8 @@
     });
 
     musicTrack.addEventListener("timeupdate", () => {
-      if (musicTrack.currentTime >= MUSIC_END) {
+      const duration = Number.isFinite(musicTrack.duration) ? musicTrack.duration : 0;
+      if (duration && musicTrack.currentTime >= duration - .25) {
         musicTrack.currentTime = MUSIC_START;
         musicTrack.play().catch(() => {});
       }
@@ -2859,6 +2876,7 @@
 
     updateSoundButtons();
     renderProgress();
+    typeMissionLaws();
   </script>
 </body>
 </html>
