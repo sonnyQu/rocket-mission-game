@@ -2344,6 +2344,10 @@
       return timer;
     }
 
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
     function buildQuestionDebrief() {
       const concepts = new Set();
       const add = (concept) => concepts.add(concept);
@@ -2574,9 +2578,11 @@
         els.answerInput.disabled = true;
         document.getElementById("submitAnswer").disabled = true;
         await typeText(els.feedbackText, question.success, 8);
+        await sleep(3000);
         if (currentStageQuestion < stage.questions.length - 1) {
           currentStageQuestion += 1;
           await typeText(els.feedbackText, "Question secured. Continue stage check.", 8);
+          await sleep(3000);
           questionPanel.classList.remove("good", "warn");
           await renderCurrentQuestion();
         } else {
