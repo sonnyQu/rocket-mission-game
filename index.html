@@ -141,8 +141,11 @@
     }
 
     .mission-laws {
+      position: fixed;
+      left: 42px;
+      bottom: 32px;
+      z-index: 4;
       width: min(560px, 44vw);
-      margin-top: 28px;
       padding-left: 17px;
       border-left: 2px solid rgba(255, 255, 255, .62);
       color: rgba(247, 248, 250, .8);
@@ -2470,7 +2473,7 @@
         for (let i = 0; i <= text.length; i += 1) {
           if (token !== missionLawToken) return;
           item.textContent = text.slice(0, i);
-          await sleep(6);
+          await sleep(5);
         }
       }
       if (token === missionLawToken) {
