@@ -618,12 +618,12 @@
         <div>
           <p class="small-label">Camera 1 / 0-10 seconds</p>
           <h2 id="setupTitle" class="stage-title">Crew Manifest</h2>
-          <div class="role">Complete every field to arm the launch sequence.</div>
+          <div class="role">Enter your group, rocket, and available crew members.</div>
         </div>
         <button id="setupSound" class="sound secondary" type="button">Sound Off</button>
       </div>
       <div class="panel-body">
-        <p id="setupPrompt" class="prompt">Enter your group, rocket, and five mission roles.</p>
+        <p id="setupPrompt" class="prompt">Enter your group, rocket, and 1-5 student names.</p>
         <div class="setup-grid">
           <label class="wide">Group name
             <input id="groupName" autocomplete="off" />
@@ -634,16 +634,16 @@
           <label>Student 1 - Unit Specialist
             <input id="student1" autocomplete="off" />
           </label>
-          <label>Student 2 - Vector Engineer
+          <label>Student 2 - Vector Engineer (optional)
             <input id="student2" autocomplete="off" />
           </label>
-          <label>Student 3 - Physics Law Officer
+          <label>Student 3 - Physics Law Officer (optional)
             <input id="student3" autocomplete="off" />
           </label>
-          <label>Student 4 - Gravity Engineer
+          <label>Student 4 - Gravity Engineer (optional)
             <input id="student4" autocomplete="off" />
           </label>
-          <label class="wide">Student 5 - Launch Analyst
+          <label class="wide">Student 5 - Launch Analyst (optional)
             <input id="student5" autocomplete="off" />
           </label>
         </div>
@@ -2461,7 +2461,10 @@
     }
 
     function setupReady() {
-      return setupInputs.every((input) => input.value.trim().length > 0);
+      const groupReady = document.getElementById("groupName").value.trim().length > 0;
+      const rocketReady = document.getElementById("rocketName").value.trim().length > 0;
+      const hasAtLeastOneStudent = setupInputs.slice(2).some((input) => input.value.trim().length > 0);
+      return groupReady && rocketReady && hasAtLeastOneStudent;
     }
 
     async function startSetup() {
@@ -2480,7 +2483,7 @@
       playSegment(0, 10, 1, true);
       await typeText(els.heroTitle, "Mission Control", 9);
       await typeText(els.setupTitle, "Crew Manifest", 10);
-      await typeText(els.setupPrompt, "Enter your group, rocket, and five mission roles.", 8);
+      await typeText(els.setupPrompt, "Enter your group, rocket, and 1-5 student names.", 8);
     }
 
     async function restartWithExistingCrew() {
@@ -2502,7 +2505,7 @@
       if (!setupReady()) {
         setupPanel.classList.add("warn");
         setupPanel.classList.remove("good");
-        await typeText(els.setupFeedback, "CHECK CREW FILE: Complete every field before launch readiness can begin.", 8);
+        await typeText(els.setupFeedback, "CHECK CREW FILE: Add a group name, rocket name, and at least one student.", 8);
         return;
       }
       setupPanel.classList.add("good");
@@ -2541,6 +2544,8 @@
       let roleText = stage.role;
       if (currentStage >= 0 && currentStage < 5 && studentName) {
         roleText = `${studentName}: ${crewRoles[currentStage]}`;
+      } else if (currentStage >= 0 && currentStage < 5) {
+        roleText = `Available crew: ${crewRoles[currentStage]}`;
       }
 
       els.cameraLabel.textContent = stage.camera;
