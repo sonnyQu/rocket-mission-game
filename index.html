@@ -2578,11 +2578,11 @@
         els.answerInput.disabled = true;
         document.getElementById("submitAnswer").disabled = true;
         await typeText(els.feedbackText, question.success, 8);
-        await sleep(3000);
+        await sleep(2000);
         if (currentStageQuestion < stage.questions.length - 1) {
           currentStageQuestion += 1;
           await typeText(els.feedbackText, "Question secured. Continue stage check.", 8);
-          await sleep(3000);
+          await sleep(2000);
           questionPanel.classList.remove("good", "warn");
           await renderCurrentQuestion();
         } else {
