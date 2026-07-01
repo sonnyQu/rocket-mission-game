@@ -143,12 +143,12 @@
     .mission-laws {
       position: fixed;
       left: 42px;
-      bottom: 32px;
+      bottom: 12px;
       z-index: 4;
       width: min(560px, 44vw);
       padding-left: 17px;
       border-left: 2px solid rgba(255, 255, 255, .62);
-      color: rgba(247, 248, 250, .8);
+      color: rgba(247, 248, 250, .84);
     }
 
     .mission-laws h2 {
@@ -178,9 +178,8 @@
     }
 
     .mission-laws li::before {
-      content: ">";
+      content: "";
       margin-right: 8px;
-      color: var(--cyan);
     }
 
     .mission-laws li.law-flip {
@@ -769,7 +768,7 @@
     </footer>
   </main>
 
-  <div id="startGate" class="start-gate show">
+  <div id="startGate" class="start-gate">
     <div class="start-card">
       <h2>Mission Control</h2>
       <p>Tap to load video, enable classroom playback, and begin crew setup.</p>
@@ -2977,7 +2976,7 @@
 
     updateSoundButtons();
     renderProgress();
-    typeMissionLaws();
+    startSystemFromGate();
   </script>
 </body>
 </html>
