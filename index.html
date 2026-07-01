@@ -140,6 +140,40 @@
       font-weight: 700;
     }
 
+    .mission-laws {
+      width: min(560px, 44vw);
+      margin-top: 28px;
+      padding-left: 17px;
+      border-left: 2px solid rgba(255, 255, 255, .62);
+      color: rgba(247, 248, 250, .8);
+    }
+
+    .mission-laws h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.2;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--white);
+    }
+
+    .mission-laws ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: clamp(12px, 1.1vw, 15px);
+      line-height: 1.32;
+      letter-spacing: .04em;
+    }
+
+    .mission-laws li::before {
+      content: ">";
+      margin-right: 8px;
+      color: var(--cyan);
+    }
+
     .question-panel,
     .setup-panel {
       grid-column: 2 / 3;
@@ -610,6 +644,19 @@
         <div>Stage: <strong id="metaStage">Crew Setup</strong></div>
         <div>Group: <strong id="metaGroup">Awaiting crew file</strong></div>
         <div>Rocket: <strong id="metaRocket">Unassigned</strong></div>
+      </div>
+      <div class="mission-laws" aria-label="Mission laws and concepts">
+        <h2>Mission Laws</h2>
+        <ul>
+          <li>Newton's First Law: balanced forces do not change motion.</li>
+          <li>Newton's Second Law: F = m x a.</li>
+          <li>Weight force: W = m x g.</li>
+          <li>Vectors have size and direction.</li>
+          <li>Resultant force is the overall vector.</li>
+          <li>Drag opposes motion; lower Cd usually means less drag.</li>
+          <li>Forces can be contact or non-contact.</li>
+          <li>Stable rocket design balances drag and stability.</li>
+        </ul>
       </div>
     </section>
 
