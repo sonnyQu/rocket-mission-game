@@ -2800,23 +2800,29 @@
     function pickStageVoice(preferFemale) {
       if (!("speechSynthesis" in window)) return null;
       const voices = window.speechSynthesis.getVoices();
-      const femaleHints = /female|woman|samantha|victoria|susan|zira|aria|jenny|michelle|karen|moira|tessa/i;
-      const maleHints = /male|man|david|mark|george|daniel|alex|fred|tom|guy/i;
-      const preferred = voices.find((voice) => (preferFemale ? femaleHints : maleHints).test(`${voice.name} ${voice.voiceURI}`));
-      return preferred || voices.find((voice) => /^en/i.test(voice.lang)) || voices[0] || null;
+      const naturalHints = /natural|online|neural|premium/i;
+      const femaleHints = /female|woman|samantha|victoria|susan|zira|aria|jenny|michelle|karen|moira|tessa|libby|sonia/i;
+      const maleHints = /male|man|david|mark|george|daniel|alex|fred|tom|guy|ryan/i;
+      const targetHints = preferFemale ? femaleHints : maleHints;
+      const englishVoices = voices.filter((voice) => /^en/i.test(voice.lang));
+      const preferred = englishVoices.find((voice) => naturalHints.test(`${voice.name} ${voice.voiceURI}`) && targetHints.test(`${voice.name} ${voice.voiceURI}`))
+        || englishVoices.find((voice) => targetHints.test(`${voice.name} ${voice.voiceURI}`))
+        || englishVoices.find((voice) => naturalHints.test(`${voice.name} ${voice.voiceURI}`));
+      return preferred || englishVoices[0] || voices[0] || null;
     }
 
     function speakStageReady(stageNumber) {
-      duckMusic(2200);
+      duckMusic(2600);
       if (!("speechSynthesis" in window)) return;
       try {
         window.speechSynthesis.cancel();
         const useFemaleStyle = stageReadyVoiceIndex % 2 === 0;
-        const msg = new SpeechSynthesisUtterance(`Stage ${stageNumber} is ready`);
+        const msg = new SpeechSynthesisUtterance(`Mission control. Stage ${stageNumber} is ready.`);
         const voice = pickStageVoice(useFemaleStyle);
         if (voice) msg.voice = voice;
-        msg.rate = .86;
-        msg.pitch = useFemaleStyle ? 1.15 : .82;
+        msg.rate = .78;
+        msg.pitch = useFemaleStyle ? 1.02 : .94;
+        msg.volume = .95;
         stageReadyVoiceIndex += 1;
         window.speechSynthesis.speak(msg);
       } catch (error) {
@@ -2832,7 +2838,7 @@
         window.setTimeout(() => {
           goOverlay.classList.remove("show");
           resolve();
-        }, 1850);
+        }, 2400);
       });
     }
 
