@@ -2838,7 +2838,8 @@
     }
 
     async function runDemoMission() {
-      await sleep(5000);
+      await waitFor(() => els.setupTitle.textContent.trim() === "Crew Manifest");
+      await sleep(8000);
       ensureMusicPlaying();
       setDemoInput("groupName", "Teacher Demo Crew");
       setDemoInput("rocketName", "Showcase Rocket");
