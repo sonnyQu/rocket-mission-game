@@ -2642,6 +2642,23 @@
       }
     }
 
+    function boostDemoAutoplay() {
+      if (!DEMO_MODE) return;
+      musicTrack.setAttribute("autoplay", "");
+      musicTrack.setAttribute("playsinline", "");
+      isMusicMuted = false;
+      updateSoundButtons();
+      ensureMusicPlaying();
+      ["loadedmetadata", "canplay", "playing"].forEach((eventName) => {
+        musicTrack.addEventListener(eventName, () => {
+          if (!isMusicMuted) ensureMusicPlaying();
+        });
+      });
+      window.setTimeout(ensureMusicPlaying, 500);
+      window.setTimeout(ensureMusicPlaying, 1500);
+      window.setTimeout(ensureMusicPlaying, 3000);
+    }
+
     function armMusicUnlock() {
       const unlock = () => {
         if (!isMusicMuted) ensureMusicPlaying();
@@ -2773,7 +2790,8 @@
     }
 
     async function runDemoMission() {
-      await sleep(450);
+      await sleep(3000);
+      ensureMusicPlaying();
       setDemoInput("groupName", "Teacher Demo Crew");
       setDemoInput("rocketName", "Showcase Rocket");
       setDemoInput("student1", "Unit Specialist");
@@ -3085,6 +3103,7 @@
     updateSoundButtons();
     renderProgress();
     armMusicUnlock();
+    boostDemoAutoplay();
     startSystemFromGate();
     if (DEMO_MODE) {
       runDemoMission().catch(() => {
