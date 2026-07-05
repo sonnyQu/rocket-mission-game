@@ -632,6 +632,8 @@
       .app {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr auto;
+        max-height: 100vh;
+        max-height: 100dvh;
         padding: 22px;
         overflow: auto;
       }
@@ -641,7 +643,31 @@
         grid-column: 1;
         grid-row: 2;
         align-self: end;
+        max-height: calc(100vh - 168px);
+        max-height: calc(100dvh - 168px);
+        overflow: auto;
         padding: 20px;
+      }
+
+      .mission-laws {
+        left: 22px;
+        right: 22px;
+        bottom: 72px;
+        width: auto;
+        max-height: 28vh;
+        overflow: hidden;
+        padding-left: 12px;
+      }
+
+      .mission-laws h2 {
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+
+      .mission-laws ul {
+        gap: 5px;
+        font-size: 11px;
+        line-height: 1.24;
       }
 
       .progress {
