@@ -806,6 +806,7 @@
     const finalScreen = document.getElementById("finalScreen");
     const goOverlay = document.getElementById("goOverlay");
     const goText = document.getElementById("goText");
+    const DEMO_MODE = new URLSearchParams(window.location.search).get("demo") === "1";
 
     const els = {
       heroTitle: document.getElementById("heroTitle"),
@@ -2406,6 +2407,7 @@
 
     function typeText(element, text, speed = 10) {
       const myToken = ++typingToken;
+      const effectiveSpeed = DEMO_MODE ? Math.min(speed, 2) : speed;
       element.classList.add("typing");
       element.textContent = "";
       return new Promise((resolve) => {
@@ -2419,7 +2421,7 @@
           element.textContent = text.slice(0, i);
           i += 1;
           if (i <= text.length) {
-            window.setTimeout(tick, speed);
+            window.setTimeout(tick, effectiveSpeed);
           } else {
             element.classList.remove("typing");
             resolve();
@@ -2442,6 +2444,10 @@
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function answerPause() {
+      return DEMO_MODE ? 250 : 2000;
     }
 
     function stopMissionLaws() {
@@ -2719,6 +2725,51 @@
       goToNextStage();
     }
 
+    function setDemoInput(id, value) {
+      const input = document.getElementById(id);
+      input.value = value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    function waitFor(condition, timeout = 20000) {
+      return new Promise((resolve, reject) => {
+        const start = Date.now();
+        const timer = window.setInterval(() => {
+          if (condition()) {
+            window.clearInterval(timer);
+            resolve();
+          } else if (Date.now() - start > timeout) {
+            window.clearInterval(timer);
+            reject(new Error("Demo timed out"));
+          }
+        }, 80);
+      });
+    }
+
+    async function runDemoMission() {
+      await sleep(450);
+      setDemoInput("groupName", "Teacher Demo Crew");
+      setDemoInput("rocketName", "Showcase Rocket");
+      setDemoInput("student1", "Unit Specialist");
+      setDemoInput("student2", "Vector Engineer");
+      setDemoInput("student3", "Physics Officer");
+      setDemoInput("student4", "Gravity Engineer");
+      setDemoInput("student5", "Launch Analyst");
+      updateMeta();
+      await beginMission();
+
+      while (currentStage < stages.length) {
+        await waitFor(() => currentStage >= stages.length || (currentStage >= 0 && !questionPanel.classList.contains("hidden") && !els.answerInput.disabled));
+        if (currentStage >= stages.length) break;
+        const question = getCurrentQuestion();
+        els.answerInput.value = question.accepted[0];
+        els.answerInput.dispatchEvent(new Event("input", { bubbles: true }));
+        await sleep(150);
+        await submitAnswer();
+        await sleep(150);
+      }
+    }
+
     async function goToNextStage() {
       currentStage += 1;
       if (currentStage >= stages.length) {
@@ -2778,11 +2829,11 @@
         els.answerInput.disabled = true;
         document.getElementById("submitAnswer").disabled = true;
         await typeText(els.feedbackText, question.success, 8);
-        await sleep(2000);
+        await sleep(answerPause());
         if (currentStageQuestion < stage.questions.length - 1) {
           currentStageQuestion += 1;
           await typeText(els.feedbackText, "Question secured. Continue stage check.", 8);
-          await sleep(2000);
+          await sleep(answerPause());
           questionPanel.classList.remove("good", "warn");
           await renderCurrentQuestion();
         } else {
@@ -3009,6 +3060,11 @@
     renderProgress();
     armMusicUnlock();
     startSystemFromGate();
+    if (DEMO_MODE) {
+      runDemoMission().catch(() => {
+        els.statusLine.textContent = "Demo paused. Continue manually.";
+      });
+    }
   </script>
 </body>
 </html>
