@@ -604,6 +604,21 @@
       backdrop-filter: blur(8px);
     }
 
+    .audio-unlock {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 9;
+      padding: 12px 18px;
+      background: rgba(0, 0, 0, .72);
+      border: 1px solid rgba(255, 255, 255, .72);
+      color: var(--white);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transform: translateX(-50%);
+      backdrop-filter: blur(8px);
+    }
+
     .typing::after {
       content: "|";
       display: inline-block;
@@ -821,6 +836,7 @@
     <div id="finalSummaryText"></div>
   </aside>
 
+  <button id="audioUnlock" class="audio-unlock hidden" type="button">Tap To Enable Sound</button>
   <button id="finalMusicToggle" class="final-music-toggle hidden" type="button">Turn Music Off</button>
 
   <script>
@@ -859,6 +875,7 @@
       finalSummary: document.getElementById("finalSummary"),
       finalSummaryText: document.getElementById("finalSummaryText"),
       finalMusicToggle: document.getElementById("finalMusicToggle"),
+      audioUnlock: document.getElementById("audioUnlock"),
       missionLaws: document.getElementById("missionLaws")
     };
 
@@ -2433,7 +2450,7 @@
 
     function typeText(element, text, speed = 10) {
       const myToken = ++typingToken;
-      const effectiveSpeed = DEMO_MODE ? Math.min(speed, 2) : speed;
+      const effectiveSpeed = DEMO_MODE ? Math.min(speed, 4) : speed;
       element.classList.add("typing");
       element.textContent = "";
       return new Promise((resolve) => {
@@ -2473,7 +2490,7 @@
     }
 
     function answerPause() {
-      return DEMO_MODE ? 250 : 2000;
+      return DEMO_MODE ? 500 : 2000;
     }
 
     function stopMissionLaws() {
@@ -2629,7 +2646,14 @@
         musicTrack.addEventListener("loadedmetadata", () => {
           setMusicToLoopStart();
           if (!isMusicMuted) {
-            musicTrack.play().then(fadeMusicToFullVolume).catch(() => {});
+            musicTrack.play()
+              .then(() => {
+                fadeMusicToFullVolume();
+                els.audioUnlock.classList.add("hidden");
+              })
+              .catch(() => {
+                if (DEMO_MODE) els.audioUnlock.classList.remove("hidden");
+              });
           }
         }, { once: true });
         return;
@@ -2638,7 +2662,14 @@
         setMusicToLoopStart();
       }
       if (!isMusicMuted) {
-        musicTrack.play().then(fadeMusicToFullVolume).catch(() => {});
+        musicTrack.play()
+          .then(() => {
+            fadeMusicToFullVolume();
+            els.audioUnlock.classList.add("hidden");
+          })
+          .catch(() => {
+            if (DEMO_MODE) els.audioUnlock.classList.remove("hidden");
+          });
       }
     }
 
@@ -2648,15 +2679,32 @@
       musicTrack.setAttribute("playsinline", "");
       isMusicMuted = false;
       updateSoundButtons();
-      ensureMusicPlaying();
+      const tryPlay = () => {
+        if (isMusicMuted) return;
+        if (musicTrack.readyState >= 1 && (musicTrack.currentTime < MUSIC_START || musicTrack.currentTime >= MUSIC_END - .25)) {
+          setMusicToLoopStart();
+        }
+        musicTrack.play()
+          .then(() => {
+            fadeMusicToFullVolume();
+            els.audioUnlock.classList.add("hidden");
+          })
+          .catch(() => {
+            els.audioUnlock.classList.remove("hidden");
+          });
+      };
+      tryPlay();
       ["loadedmetadata", "canplay", "playing"].forEach((eventName) => {
-        musicTrack.addEventListener(eventName, () => {
-          if (!isMusicMuted) ensureMusicPlaying();
-        });
+        musicTrack.addEventListener(eventName, tryPlay);
       });
-      window.setTimeout(ensureMusicPlaying, 500);
-      window.setTimeout(ensureMusicPlaying, 1500);
-      window.setTimeout(ensureMusicPlaying, 3000);
+      window.setTimeout(tryPlay, 500);
+      window.setTimeout(tryPlay, 1500);
+      window.setTimeout(tryPlay, 3000);
+      els.audioUnlock.addEventListener("click", () => {
+        isMusicMuted = false;
+        updateSoundButtons();
+        tryPlay();
+      });
     }
 
     function armMusicUnlock() {
@@ -2808,9 +2856,9 @@
         const question = getCurrentQuestion();
         els.answerInput.value = question.accepted[0];
         els.answerInput.dispatchEvent(new Event("input", { bubbles: true }));
-        await sleep(150);
+        await sleep(300);
         await submitAnswer();
-        await sleep(150);
+        await sleep(300);
       }
     }
 
